@@ -1,0 +1,349 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+/*
+ * Recording setup page. Tokens come from src/shared/tokens.css (shared with
+ * the popup and editor); this file only holds the page's surface styles.
+ */
+
+@import '../shared/tokens.css';
+@import '../shared/controls.css';
+@import '../shared/ui.css';
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font);
+  font-size: var(--fs-base);
+  line-height: 1.5;
+  color: var(--text-1);
+  background: var(--surface-2);
+  -webkit-font-smoothing: antialiased;
+}
+
+.setup {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: var(--s-6) var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.setup-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+
+.setup-header h1 {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 700;
+}
+
+.setup-intro {
+  margin: var(--s-1) 0 0;
+  color: var(--text-2);
+}
+
+/* ---- Trust strip ---- */
+.trust-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.trust-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--s-1) var(--s-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  background: var(--surface-1);
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.trust-pill svg {
+  width: 15px;
+  height: 15px;
+  color: var(--accent-ink);
+}
+
+a.trust-pill:hover {
+  border-color: var(--accent);
+}
+
+.trust-hint {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.banner {
+  border-radius: var(--r-md);
+  padding: var(--s-3) var(--s-4);
+}
+
+.banner-attention {
+  background: var(--accent-subtle);
+  color: var(--accent-ink);
+}
+
+.banner-ready {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  background: color-mix(in srgb, var(--success) 14%, var(--surface-1));
+}
+
+.setup-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--s-3) var(--s-4);
+}
+
+.row-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: var(--r-full);
+  background: var(--accent-subtle);
+  color: var(--accent-ink);
+}
+
+.row-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.row-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.row-head h2 {
+  margin: 0;
+  font-size: var(--fs-base);
+  font-weight: 600;
+}
+
+.row-desc {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.row-hint {
+  margin: var(--s-2) 0 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.row-recover {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-2);
+}
+
+.tag {
+  border-radius: var(--r-full);
+  padding: var(--s-05) 10px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tag-granted {
+  background: color-mix(in srgb, var(--success) 18%, var(--surface-1));
+}
+
+.tag-required {
+  background: var(--accent-subtle);
+  color: var(--accent-ink);
+}
+
+.tag-optional {
+  background: var(--surface-3);
+  color: var(--text-2);
+}
+
+.tag-denied {
+  background: color-mix(in srgb, var(--warning) 20%, var(--surface-1));
+  color: var(--danger-ink);
+}
+
+.btn-primary {
+  border: none;
+  border-radius: var(--r-sm);
+  padding: var(--s-2) var(--s-4);
+  background: var(--accent-ink);
+  color: var(--on-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.btn-primary:hover {
+  background: var(--accent-ink-hover);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-ghost {
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: var(--s-1) var(--s-3);
+  background: transparent;
+  color: var(--text-1);
+  font: inherit;
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.btn-ghost:hover {
+  background: var(--hover-overlay);
+}
+
+.btn-ghost:active {
+  transform: scale(0.98);
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  cursor: pointer;
+}
+
+/* A calm permissions page, with generous rhythm and grouped settings. */
+.setup {
+  max-width: 720px;
+  padding: calc(var(--s-6) * 2) var(--s-5);
+  gap: var(--s-5);
+}
+.setup-header {
+  align-items: center;
+  gap: var(--s-4);
+}
+.setup-header h1 {
+  font-size: var(--fs-3xl);
+  font-weight: 400;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+.setup-intro {
+  margin-top: var(--s-2);
+}
+.trust-pill {
+  border-color: transparent;
+  font-weight: 500;
+  padding: var(--s-2) var(--s-3);
+}
+.setup-rows {
+  gap: var(--s-2);
+}
+.row {
+  border-color: transparent;
+  padding: var(--s-5);
+  gap: var(--s-4);
+}
+.row-head h2 {
+  font-size: var(--fs-lg);
+  font-weight: 500;
+}
+.row-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-md);
+}
+.row:nth-child(2) .row-icon {
+  color: var(--text-1);
+  background: color-mix(in srgb, var(--brand-green) 20%, var(--surface-1));
+}
+.row:nth-child(3) .row-icon {
+  color: var(--text-1);
+  background: color-mix(in srgb, var(--brand-yellow) 28%, var(--surface-1));
+}
+.row:nth-child(4) .row-icon {
+  color: var(--danger-ink);
+  background: color-mix(in srgb, var(--brand-red) 14%, var(--surface-1));
+}
+.row-desc {
+  font-size: var(--fs-base);
+}
+.btn-primary,
+.btn-ghost {
+  min-height: 40px;
+  border-radius: var(--r-full);
+  padding: var(--s-2) var(--s-5);
+  font-weight: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary,
+  .btn-ghost {
+    transition: none;
+  }
+}
+
+/* Below --bp-sm (tokens.css — a var() cannot appear in this condition, so
+   480px is that token's value spelled out; tests/unit/breakpoint-guard.test.ts
+   checks the two stay equal) the 40px icon, the heading, the state tag and the
+   row's button share too little width side by side; stack the row instead. */
+@media (max-width: 480px) {
+  .row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/*
+ * Forced colors discards every author background, and .tag-granted /
+ * -required / -optional / -denied and .banner-attention / -ready are
+ * distinguished by background alone — so all four tags and both banners
+ * flatten to the page's own surface and stop reading as chips at all.
+ * Which state each one is stays legible without this block: every tag and
+ * banner spells its state in text (setupGranted, setupDeniedTag, ...), so
+ * the job here is the boundary, not re-encoding the colour. A system-palette
+ * border restores it.
+ */
+@media (forced-colors: active) {
+  .tag,
+  .banner {
+    border: 1px solid CanvasText;
+  }
+}

@@ -1,0 +1,1590 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
+/*
+ * OpenScreenShot popup styles. Design tokens (spacing, radius, shadows,
+ * typography, light/dark themes) live in src/shared/tokens.css and are shared
+ * with the editor. This file only holds popup surface styles.
+ */
+
+@import '../shared/tokens.css';
+@import '../shared/controls.css';
+@import '../shared/ui.css';
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font);
+  font-size: var(--fs-base);
+  line-height: 1.45;
+  color: var(--text-1);
+  background: var(--surface-1);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- App shell ---- */
+/* Toolbar popups start with a narrow viewport while Chrome measures their
+   content. Give the document an intrinsic width before applying viewport caps.
+   The standalone settings page keeps its responsive document width. */
+body:has(.app:not(.app-settings-page)) {
+  width: 340px;
+}
+
+.app {
+  width: 340px;
+  padding: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+/* ---- Header ---- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Groups the History and Settings icon buttons as .header's one right-hand
+   child, so .header's space-between still reads as two things (brand, the
+   button group) rather than spreading a third child out across the row. */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.brand-mark {
+  display: inline-flex;
+}
+
+.brand-name {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Override of the shared 28px ghost from ui.css: the header back/settings
+   buttons want a bigger touch target and a dimmer resting colour. */
+.icon-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  color: var(--text-2);
+  transition:
+    background var(--dur-mid) var(--ease-out),
+    color var(--dur-mid) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.icon-btn:hover {
+  color: var(--text-1);
+}
+
+/* ---- Capture mode cards ---- */
+.modes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.mode-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-4);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text-1);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-mid) var(--ease-out),
+    background var(--dur-mid) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out),
+    opacity var(--dur-mid) var(--ease-out);
+}
+
+.mode-card:hover {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.mode-card:active {
+  transform: scale(0.98);
+}
+
+.mode-card:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.mode-card:disabled:hover {
+  border-color: var(--border);
+  background: var(--surface-2);
+}
+
+.mode-card[aria-disabled='true'] {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.mode-card[aria-disabled='true']:hover {
+  border-color: var(--border);
+  background: var(--surface-2);
+}
+
+.mode-card[data-busy='true'] {
+  opacity: 1;
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.mode-card:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* Cards are neutral at rest; only the hovered (or busy) card takes the accent. */
+.mode-icon {
+  display: inline-flex;
+  justify-content: center;
+  width: 24px;
+  color: var(--text-2);
+  flex: 0 0 auto;
+  transition: color var(--dur-mid) var(--ease-out);
+}
+
+.mode-card:hover .mode-icon,
+.mode-card[data-busy='true'] .mode-icon {
+  color: var(--accent-ink);
+}
+
+.mode-card:hover .mode-title,
+.mode-card[data-busy='true'] .mode-title {
+  color: var(--accent-ink);
+}
+
+.mode-card:disabled:hover .mode-icon,
+.mode-card[aria-disabled='true']:hover .mode-icon {
+  color: var(--text-2);
+}
+
+.mode-card:disabled:hover .mode-title,
+.mode-card[aria-disabled='true']:hover .mode-title {
+  color: inherit;
+}
+
+.mode-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mode-title {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  transition: color var(--dur-mid) var(--ease-out);
+}
+
+.mode-sub {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+/* ---- Recording row ---- */
+.rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  flex: 0 0 auto;
+  animation: oss-rec-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes oss-rec-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.rec-live {
+  cursor: default;
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+/* ---- Spinner ---- */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--accent);
+  border-top-color: transparent;
+  border-radius: var(--r-full);
+  flex: 0 0 auto;
+  animation: oss-spin 0.7s linear infinite;
+}
+
+@keyframes oss-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Progress bar (full-page capture) ---- */
+.progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width var(--dur-slow) var(--ease-out);
+}
+
+/* ---- Recording sources (independent toggles, so chips, never a seg) ---- */
+.rec-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rec-sources-label {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+.chip-row {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.chip-toggle {
+  flex: 1;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  background: var(--surface-1);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.chip-toggle:hover {
+  background: var(--surface-2);
+}
+
+.chip-toggle:active {
+  transform: scale(0.98);
+}
+
+.chip-toggle[aria-pressed='true'] {
+  background: var(--accent-subtle);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.chip-toggle:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* ---- Divider ---- */
+/* No margin of its own: both callers sit in a gapped flex column, which
+   already spaces it on either side. */
+.divider {
+  height: 1px;
+  background: var(--rule);
+}
+
+/* ---- Settings ---- */
+/* Settings keep a compact, scrollable layout in the toolbar popup. The
+   explicit settings URL adds the responsive full-tab shell below. */
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-height: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+.settings-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.settings-label {
+  font-size: var(--fs-base);
+  font-weight: 500;
+  color: var(--text-1);
+  overflow-wrap: anywhere;
+}
+.settings-section {
+  margin-top: var(--s-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+label.settings-row .settings-label {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.settings-hint {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+/* The one hint that is a filename, not a sentence. */
+.filename-preview {
+  font-family: var(--font-mono);
+}
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+/* A seg whose buttons split the row's full width evenly. */
+.seg-fill {
+  display: flex;
+}
+.seg-fill .seg-btn {
+  flex: 1;
+}
+.seg-btn {
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+.seg-btn:last-child {
+  border-right: none;
+}
+.seg-btn:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.seg-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+/* A chosen segment is a position in a group, not a switched-on thing, so it
+   reads as weight and fill; coral stays on the source chips, the Record
+   card and the switches, which are on/off. */
+.seg-btn[aria-pressed='true'] {
+  background: var(--surface-3);
+  color: var(--text-1);
+  font-weight: 600;
+}
+.seg-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.seg-btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+.text-input {
+  height: 30px;
+  padding: 0 var(--s-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+.text-input:focus {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+.token-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.token-chip {
+  /* 24px floor for the pointer target: at 11px mono the padded chip lands
+     at 23px on Linux font metrics, and axe's target-size rule flags it. */
+  min-height: 24px;
+  min-width: 24px;
+  padding: var(--s-05) 6px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.token-chip:hover {
+  background: var(--surface-3);
+  color: var(--accent-ink);
+}
+
+.token-chip:active {
+  transform: scale(0.98);
+}
+
+.token-chip:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+.check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-base);
+  color: var(--text-1);
+}
+.num-input {
+  width: 48px;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  text-align: right;
+}
+.num-input:disabled {
+  opacity: 0.45;
+}
+.num-input:focus {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+/* ---- Footer ---- */
+/*
+ * Six entries measured ~395px of min-content against the panel's 308px
+ * content box, and sat in a `flex-wrap: nowrap` row, so the last one ran
+ * through the panel edge — visible in the shipped store screenshot. Ko-fi
+ * and Cool stuff moved to a Support row in Settings; the four that stay
+ * measure 283px and share one line at the .link-btn's own --fs-sm. The wrap
+ * stays as the fallback for a locale that spells these longer than English
+ * does — nothing shrinks below min-content, so it is the only thing that can.
+ */
+.footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-1) var(--s-2);
+  flex-wrap: wrap;
+}
+
+.kofi-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: center;
+}
+
+.kofi-link svg {
+  flex: 0 0 auto;
+}
+
+/* ---- Shortcuts ---- */
+.mode-keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.mode-card kbd {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  background: var(--surface-3);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 1px 6px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.mode-card .kbd-os {
+  background: transparent;
+  /* Transparent background falls through to .mode-card's --surface-2, not
+     this kbd's own --surface-3 — --text-3 only clears 4.5:1 on --surface-1,
+     so this takes --text-2 (5.09:1 light / 5.68:1 dark on --surface-2)
+     instead, matching the plain <kbd> above. */
+  color: var(--text-2);
+}
+
+/* Warning chip: a toggled-on device whose permission is hard-denied. */
+.perm-chip {
+  align-self: flex-start;
+  border: none;
+  border-radius: var(--r-full);
+  padding: var(--s-05) 10px;
+  background: color-mix(in srgb, var(--warning) 20%, var(--surface-1));
+  color: var(--danger-ink);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.perm-chip:hover {
+  background: color-mix(in srgb, var(--warning) 32%, var(--surface-1));
+}
+
+.perm-chip:active {
+  transform: scale(0.98);
+}
+
+.link-btn {
+  align-self: center;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  cursor: pointer;
+  padding: var(--s-05) var(--s-1);
+  border-radius: var(--r-sm);
+  transition:
+    color var(--dur-mid) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+/* The Settings row whose right-hand side is a destination, not an action. */
+.link-btn-accent {
+  color: var(--accent-ink);
+}
+
+.support-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.link-btn:hover {
+  color: var(--accent-ink);
+  text-decoration: underline;
+}
+
+.link-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.link-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.link-btn:disabled:hover {
+  color: var(--text-2);
+  text-decoration: none;
+}
+
+.link-btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* ---- Pin nudge: Chrome does not pin on install, so say so once ---- */
+.pin-hint {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-05);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  font-size: var(--fs-sm);
+}
+
+.pin-hint strong {
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+.pin-hint span {
+  color: var(--text-2);
+}
+
+/* ---- Trust line: the assurance that rides with a permission ask ---- */
+.rec-trust {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+
+.rec-trust svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+}
+
+.rec-trust-hint {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+/* ---- Toasts ---- */
+.toasts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+/* Empty for all but a few seconds of the popup's life, and .app's gap paid
+   for it on every one of them. Safe to drop out of the flow: each toast
+   carries its own role=alert/status, so the announcement does not depend on
+   this container being in the accessibility tree beforehand. */
+.toasts:empty {
+  display: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-md);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  border: 1px solid transparent;
+  animation: oss-toast-in var(--dur-slow) var(--ease-out);
+}
+
+.toast-text {
+  flex: 1 1 auto;
+}
+
+.toast-dismiss {
+  flex: 0 0 auto;
+  padding: 0 var(--s-05);
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: var(--fs-base);
+  line-height: 1.2;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.toast-dismiss:hover {
+  opacity: 1;
+}
+
+.toast-dismiss:active {
+  transform: scale(0.98);
+}
+
+.toast-dismiss:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+.toast-success {
+  background: color-mix(in srgb, var(--success) 16%, var(--surface-1));
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 40%, transparent);
+}
+
+.toast-error {
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface-1));
+  color: var(--danger-ink);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+.toast-info {
+  background: var(--surface-2);
+  color: var(--text-2);
+  border-color: var(--border);
+}
+
+@keyframes oss-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reset-btn[data-armed='true'] {
+  color: var(--danger-ink);
+  font-weight: 600;
+}
+
+/* ---- Reduced motion ---- */
+/* Workspace capture launcher: tonal rows with distinct capture marks. */
+.app {
+  width: 340px;
+  max-width: 100vw;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+}
+.header {
+  min-height: 40px;
+  padding-bottom: var(--s-1);
+}
+.brand-name {
+  font-size: var(--fs-lg);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-full);
+}
+.modes {
+  gap: var(--s-1);
+  background: var(--surface-2);
+  border-radius: var(--r-lg);
+  padding: var(--s-1);
+}
+.mode-card {
+  min-height: 60px;
+  padding: var(--s-2) var(--s-3);
+  border-color: transparent;
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+}
+.mode-card:hover {
+  border-color: transparent;
+  background: var(--accent-subtle);
+}
+.mode-icon {
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  border-radius: var(--r-md);
+  color: var(--accent-ink);
+  background: var(--accent-subtle);
+}
+.modes .mode-card:nth-child(2) .mode-icon {
+  color: var(--text-1);
+  background: color-mix(in srgb, var(--brand-yellow) 30%, var(--surface-1));
+}
+.modes .mode-card:nth-child(3) .mode-icon {
+  color: var(--text-1);
+  background: color-mix(in srgb, var(--brand-green) 22%, var(--surface-1));
+}
+/* Four capture modes must fit alongside recording in Chrome's 600px popup. */
+.app:has(> .modes) {
+  gap: 6px;
+}
+.modes .mode-card {
+  min-height: 48px;
+  padding: var(--s-1) var(--s-2);
+  gap: var(--s-2);
+}
+.modes .mode-icon {
+  width: 32px;
+  height: 32px;
+}
+.mode-card[data-testid='rec-start'] .mode-icon {
+  color: var(--danger-ink);
+  background: color-mix(in srgb, var(--brand-red) 14%, var(--surface-1));
+}
+.mode-title {
+  font-weight: 500;
+}
+.settings-section {
+  margin-top: var(--s-1);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-2);
+}
+.settings-label {
+  font-weight: 500;
+}
+.seg {
+  border-radius: var(--r-full);
+}
+/* The Screenshot heading shares its line with the delay picker. The picker
+   is taller than the heading, so the heading drops its top margin to keep
+   the first-run popup under Chrome's 600px cap. */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+.section-head .settings-section {
+  margin-top: 0;
+}
+.delay-pick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.delay-label {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+.seg-compact .seg-btn {
+  height: 24px;
+}
+.seg-btn {
+  height: 32px;
+}
+.seg-btn[aria-pressed='true'] {
+  background: var(--accent-subtle);
+  color: var(--accent-ink);
+  font-weight: 500;
+}
+.text-input {
+  height: 36px;
+  background: var(--surface-1);
+}
+.rec-dot {
+  background: var(--brand-red);
+}
+
+/* ---- Responsive settings page ---- */
+.app-settings {
+  max-height: 600px;
+}
+.app-settings .header {
+  flex: 0 0 auto;
+}
+.settings-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.settings-heading h1 {
+  margin: 0;
+}
+.settings-intro {
+  margin: var(--s-1) 0 0;
+  color: var(--text-2);
+  font-size: var(--fs-base);
+}
+.settings-group {
+  padding: var(--s-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+}
+.settings-group h2 {
+  margin: 0 0 var(--s-3);
+  color: var(--accent-ink);
+  font-size: var(--fs-base);
+  font-weight: 500;
+}
+.settings-group .settings-row + .settings-row {
+  margin-top: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--border);
+}
+.settings-copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.settings .settings-hint {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.settings .settings-filename + .settings-hint {
+  margin-top: var(--s-2);
+}
+.settings .settings-row-switch {
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+.settings-row-switch .switch {
+  flex: 0 0 auto;
+  margin-top: var(--s-05);
+}
+.settings .rec-trust {
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  white-space: normal;
+}
+.settings .token-row {
+  flex-wrap: wrap;
+}
+.settings .token-chip {
+  background: var(--surface-1);
+}
+.settings .text-input {
+  width: 100%;
+  min-width: 0;
+}
+.settings .filename-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-05);
+  overflow-wrap: anywhere;
+}
+.filename-preview > span:first-child {
+  font-family: var(--font);
+}
+.settings .support-links {
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-4);
+}
+.settings .support-links .link-btn {
+  min-height: 32px;
+  white-space: normal;
+  text-align: start;
+}
+.settings-footer {
+  display: flex;
+  justify-content: flex-start;
+  padding: 0 var(--s-1) var(--s-2);
+}
+/* Full-tab settings: a rail of section tabs on the left, the chosen section
+   beside it. Below 768px the rail folds into a wrapping chip row on top. */
+.app-settings-page {
+  width: min(1280px, calc(100% - 48px));
+  max-width: none;
+  max-height: none;
+  margin: 0 auto;
+  padding: 0 0 var(--s-6);
+  gap: var(--s-5);
+}
+.app-settings-page .header {
+  padding: var(--s-5) var(--s-1);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: var(--s-4);
+}
+.app-settings-page .settings-heading {
+  gap: var(--s-4);
+}
+.app-settings-page .settings-heading h1 {
+  font-size: var(--fs-2xl);
+}
+.settings-layout {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--s-6);
+}
+.settings-rail {
+  position: sticky;
+  top: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+.rail-link {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--s-2) var(--s-3);
+  border: none;
+  border-radius: var(--r-full);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-base);
+  font-weight: 500;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.rail-link:hover {
+  background: var(--hover-overlay);
+  color: var(--text-1);
+}
+.rail-link:active {
+  background: var(--surface-3);
+}
+.rail-link:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+.rail-link[aria-selected='true'] {
+  background: var(--accent-subtle);
+  color: var(--text-1);
+  font-weight: 600;
+}
+.rail-icon {
+  display: inline-flex;
+  color: var(--text-3);
+}
+.rail-link[aria-selected='true'] .rail-icon {
+  color: var(--accent-ink);
+}
+.app-settings-page .settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  overflow: visible;
+}
+/* Inactive tab panels: the card classes set display, which beats [hidden]. */
+.app-settings-page .settings > [hidden] {
+  display: none;
+}
+.app-settings-page .settings-group {
+  padding: var(--s-5);
+  background: var(--surface-2);
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
+}
+.card-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+  background: var(--accent-subtle);
+  color: var(--accent-ink);
+}
+.app-settings-page .settings-group h2 {
+  margin: 0;
+  min-width: 0;
+  color: var(--text-1);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.app-settings-page .settings-group .settings-row + .settings-row {
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+}
+.app-settings-page .settings-row-switch {
+  align-items: center;
+}
+.app-settings-page .settings-row-switch .settings-copy {
+  flex: 1 1 auto;
+}
+.app-settings-page .settings-row-switch > .row-icon {
+  align-self: flex-start;
+  margin-top: var(--s-05);
+}
+.row-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.row-head .settings-label {
+  flex: 1 1 auto;
+}
+.row-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--text-3);
+}
+.row-value {
+  padding: var(--s-05) var(--s-2);
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.range-ticks {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+.choice-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+  padding: var(--s-3) var(--s-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-1);
+  color: var(--text-2);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+.choice-tile:hover {
+  border-color: var(--border);
+  color: var(--text-1);
+}
+.choice-tile:active {
+  transform: scale(0.98);
+}
+.choice-tile:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+.choice-tile[aria-pressed='true'] {
+  border-color: var(--accent-ink);
+  box-shadow: inset 0 0 0 1px var(--accent-ink);
+  background: var(--accent-subtle);
+  color: var(--text-1);
+}
+.choice-icon {
+  display: inline-flex;
+  color: var(--text-3);
+}
+.choice-tile[aria-pressed='true'] .choice-icon {
+  color: var(--accent-ink);
+}
+.choice-label {
+  max-width: 100%;
+  font-size: var(--fs-base);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+/* Fixed light and dark samples: each preview shows its own theme, whatever
+   theme the page itself is in. Values mirror tokens.css light and dark. */
+.theme-preview {
+  --preview-light: #ffffff;
+  --preview-light-bar: #e9eef6;
+  --preview-dark: #202124;
+  --preview-dark-bar: #454951;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  max-width: 96px;
+  aspect-ratio: 16 / 10;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+.theme-preview > span {
+  height: 6px;
+  border-radius: var(--r-full);
+}
+.theme-preview > span:last-child {
+  width: 60%;
+}
+.theme-preview-light {
+  background: var(--preview-light);
+}
+.theme-preview-light > span {
+  background: var(--preview-light-bar);
+}
+.theme-preview-dark {
+  background: var(--preview-dark);
+}
+.theme-preview-dark > span {
+  background: var(--preview-dark-bar);
+}
+.theme-preview-system {
+  background: linear-gradient(135deg, var(--preview-light) 0 50%, var(--preview-dark) 50% 100%);
+}
+.theme-preview-system > span {
+  background: var(--preview-dark-bar);
+}
+.select {
+  min-width: 160px;
+  height: 40px;
+  padding: 0 var(--s-6) 0 var(--s-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24'%3E%3Cpath fill='%2360656d' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E")
+      no-repeat right 8px center,
+    var(--surface-1);
+  color: var(--text-1);
+  font-size: var(--fs-base);
+  appearance: none;
+  cursor: pointer;
+}
+.select:hover {
+  border-color: var(--border-strong);
+}
+.select:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+.row-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  flex: 0 0 auto;
+}
+.file-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  max-width: 100%;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  background: var(--surface-1);
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.file-pill > svg {
+  color: var(--text-3);
+}
+.app-settings-page .settings-footer {
+  padding: 0;
+}
+@media (max-width: 768px) {
+  .settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-4);
+  }
+  .settings-rail {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+  }
+  .rail-link {
+    width: auto;
+    min-height: 36px;
+    padding: var(--s-1) var(--s-3);
+    border: 1px solid var(--border);
+    font-size: var(--fs-sm);
+  }
+  .app-settings-page {
+    width: calc(100% - 32px);
+    padding-block: 0 var(--s-4);
+  }
+  .app-settings-page .settings-group {
+    padding: var(--s-4);
+  }
+}
+@media (max-width: 480px) {
+  .choice-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .choice-tile {
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+  .theme-preview {
+    max-width: 48px;
+    padding: 4px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rail-link,
+  .choice-tile {
+    transition: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mode-card,
+  .icon-btn,
+  .toast,
+  /* Colour-only hover and toggle fades — none of them convey progress the
+     way .spinner does, so they are suppressed outright rather than slowed. */
+  .mode-icon,
+  .mode-title,
+  .chip-toggle,
+  .seg-btn,
+  .token-chip,
+  .link-btn,
+  .perm-chip,
+  .toast-dismiss {
+    transition: none;
+  }
+  .spinner {
+    animation-duration: 1.4s;
+  }
+  .rec-dot {
+    animation: none;
+  }
+  .progress-fill {
+    transition: none;
+  }
+  .toast {
+    animation: none;
+  }
+}
+
+/*
+ * Recording-source chip and settings segment both carry their pressed state
+ * as background/border/text colour only. Forced colors mode maps arbitrary
+ * author colour to a small system palette by element role, so a pressed
+ * chip/segment can end up sharing its unpressed sibling's system colour
+ * unless told otherwise. Highlight/HighlightText is the pair Chromium
+ * reserves for "this one is chosen," guaranteed to differ from the
+ * ButtonFace/ButtonText an unpressed sibling renders with.
+ */
+@media (forced-colors: active) {
+  .chip-toggle[aria-pressed='true'],
+  .seg-btn[aria-pressed='true'] {
+    background-color: Highlight;
+    border-color: Highlight;
+    color: HighlightText;
+  }
+}
+
+.settings-shortcuts h3 {
+  margin: var(--s-3) 0 var(--s-2);
+  font-size: var(--fs-base);
+}
+.settings-shortcuts > .settings-hint {
+  margin: var(--s-2) 0;
+}
+.shortcut-bindings {
+  margin: var(--s-3) 0;
+}
+.shortcut-bindings > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--border);
+}
+.shortcut-bindings dd {
+  margin: 0;
+}
+.settings-shortcuts > button {
+  white-space: normal;
+  height: auto;
+  min-height: 36px;
+}
+
+.capture-return {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-1);
+}
+.capture-return-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.capture-return p {
+  width: 100%;
+  margin: 0;
+}
+
+.capture-return-primary {
+  background: var(--accent-ink);
+  color: var(--on-accent);
+  border-color: transparent;
+}
+.capture-return-primary:hover {
+  background: var(--accent-ink-hover);
+}
+
+.settings-nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-4);
+  margin-left: auto;
+}
+.app-settings .header {
+  flex-wrap: wrap;
+}
+.app-settings-page .settings-heading {
+  flex: 1 1 340px;
+}
+.settings-shortcuts .shortcut-manage {
+  align-self: flex-start;
+}
+
+.restricted-page {
+  padding: 20px;
+  gap: var(--s-4);
+}
+.restricted-page .brand-name {
+  font-size: var(--fs-base);
+}
+.restricted-copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.restricted-page h1 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  line-height: 1.3;
+}
+.restricted-page p {
+  margin: 0;
+  color: var(--text-2);
+}
+.restricted-page > .btn-primary {
+  height: auto;
+  min-height: 40px;
+  padding: var(--s-2) var(--s-4);
+  background: var(--accent-ink);
+  color: var(--on-accent);
+  border-color: transparent;
+  white-space: normal;
+}
+.restricted-page > .btn-primary:hover:not(:disabled) {
+  background: var(--accent-ink-hover);
+}
+.restricted-page > .btn-primary:active:not(:disabled) {
+  background: var(--accent-ink-pressed);
+}
+.restricted-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s-2) var(--s-5);
+}
+
+.capture-error-report {
+  display: grid;
+  gap: var(--s-2);
+  margin: var(--s-3) 16px 0;
+  padding: var(--s-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-1);
+}
+.capture-error-report strong {
+  font-size: var(--fs-sm);
+}
+.capture-error-report p {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+.capture-error-report label {
+  display: grid;
+  gap: var(--s-1);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+.capture-error-report textarea {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.capture-error-report-status {
+  margin: var(--s-3) 16px 0;
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+}
+
+/* One-click Express is the product's headline behavior, so it leads Settings
+   as its own card instead of sitting among the capture preferences. */
+.express-card {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+}
+.express-card.is-on {
+  border-color: var(--accent-ink);
+  background: var(--accent-subtle);
+}
+.express-card .settings-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.express-card-label {
+  display: block;
+  color: var(--text-1);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.express-card-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-full);
+  background: var(--surface-1);
+  color: var(--text-3);
+}
+.express-card.is-on .express-card-icon {
+  background: var(--accent-ink);
+  color: var(--on-accent);
+}
+.express-card .switch {
+  flex: 0 0 auto;
+}

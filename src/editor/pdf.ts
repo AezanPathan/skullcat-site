@@ -1,0 +1,184 @@
+/**
+ * PDF export. The controller composites the image + annotations at full
+ * resolution (composeFinal); this module lays them out into a PDF using one of
+ * three page-sizing strategies:
+ *
+ *  - "full": a single custom page matching the image's exact aspect ratio.
+ *  - "a4"/"letter" single: the whole image fit onto one page, centered.
+ *  - "a4"/"letter" multi-page: the image is sliced vertically into page-height
+ *    tiles (with a small overlap so content isn't split mid-line) and each tile
+ *    becomes its own page. Slicing keeps the PDF small (one image per page
+ *    instead of embedding the full image on every page).
+ */
+import { buildPdf, type PdfPage } from './pdf-writer';
+import { toDownloadPath } from '../shared/utils';
+
+export interface PdfOptions {
+  pageSize: 'a4' | 'letter' | 'full';
+  orientation: 'portrait' | 'landscape';
+  multiPage: boolean;
+  marginMm: number;
+}
+
+export const MIN_PDF_MARGIN_MM = 0;
+export const MAX_PDF_MARGIN_MM = 40;
+
+/**
+ * Hold a typed margin inside the declared 0-40mm range. Non-finite input (an
+ * emptied field parses to 0 via Number(''), which is already in range and
+ * needs no fallback here — this guards the harder case, a value like Infinity
+ * that would otherwise reach the page-layout math below unclamped.
+ */
+export function clampPdfMargin(value: number): number {
+  if (!Number.isFinite(value)) return MIN_PDF_MARGIN_MM;
+  return Math.round(Math.min(MAX_PDF_MARGIN_MM, Math.max(MIN_PDF_MARGIN_MM, value)));
+}
+
+const PAGE_SIZES_MM: Record<'a4' | 'letter', [number, number]> = {
+  a4: [210, 297],
+  letter: [215.9, 279.4],
+};
+
+const PX_TO_MM = 25.4 / 96;
+const MM_TO_PT = 72 / 25.4;
+const OVERLAP_MM = 5;
+
+const pt = (mm: number) => mm * MM_TO_PT;
+
+/** Reported once per page from the multi-page loop below — the only stage in
+ * this module with real, discrete work to report. `total` is the loop's own
+ * page-count estimate; the other two page-sizing strategies never call this
+ * (a single toDataURL-style pass has no stage in between to report). */
+export interface PdfExportProgress {
+  page: number;
+  total: number;
+}
+
+export async function exportPdf(
+  canvas: HTMLCanvasElement,
+  opts: PdfOptions,
+  filename: string,
+  onProgress?: (progress: PdfExportProgress) => void,
+): Promise<void> {
+  const imgW = canvas.width;
+  const imgH = canvas.height;
+  const imgWmm = imgW * PX_TO_MM;
+  const imgHmm = imgH * PX_TO_MM;
+  const pages: PdfPage[] = [];
+
+  if (opts.pageSize === 'full') {
+    pages.push({
+      widthPt: pt(imgWmm),
+      heightPt: pt(imgHmm),
+      image: { canvas, xPt: 0, yPt: 0, wPt: pt(imgWmm), hPt: pt(imgHmm) },
+    });
+    await savePdf(pages, filename);
+    return;
+  }
+
+  const [pw, ph] = PAGE_SIZES_MM[opts.pageSize];
+  const landscape = opts.orientation === 'landscape';
+  const pageWmm = landscape ? ph : pw;
+  const pageHmm = landscape ? pw : ph;
+  const margin = opts.marginMm;
+  const contentW = pageWmm - margin * 2;
+  const contentHmm = pageHmm - margin * 2;
+  const fitScale = contentW / imgWmm; // drawn mm per source mm (fit to width)
+  const mmPerPx = PX_TO_MM * fitScale; // drawn mm per source px
+  const drawHmm = imgHmm * fitScale; // full image height when fit to width
+
+  if (!opts.multiPage || drawHmm <= contentHmm) {
+    // Single page: fit the whole image within the content area, centered.
+    const s = Math.min(contentW / imgWmm, contentHmm / imgHmm);
+    const w = imgWmm * s;
+    const h = imgHmm * s;
+    pages.push({
+      widthPt: pt(pageWmm),
+      heightPt: pt(pageHmm),
+      image: {
+        canvas,
+        xPt: pt((pageWmm - w) / 2),
+        yPt: pt((pageHmm - h) / 2),
+        wPt: pt(w),
+        hPt: pt(h),
+      },
+    });
+    await savePdf(pages, filename);
+    return;
+  }
+
+  // Multi-page: slice into page-height tiles with overlap.
+  const contentHpx = contentHmm / mmPerPx;
+  const overlapPx = OVERLAP_MM / mmPerPx;
+  const stepPx = Math.max(1, contentHpx - overlapPx);
+  const pageCount = Math.max(1, Math.ceil((imgH - overlapPx) / stepPx));
+  for (let i = 0; i < pageCount; i++) {
+    const srcY = Math.round(i * stepPx);
+    if (srcY >= imgH) break;
+    const srcH = Math.min(Math.round(contentHpx), imgH - srcY);
+    if (srcH <= 0) break;
+    const tile = sliceCanvas(canvas, 0, srcY, imgW, srcH);
+    pages.push({
+      widthPt: pt(pageWmm),
+      heightPt: pt(pageHmm),
+      image: {
+        canvas: tile,
+        xPt: pt(margin),
+        yPt: pt(margin),
+        wPt: pt(contentW),
+        hPt: pt(srcH * mmPerPx),
+      },
+    });
+    onProgress?.({ page: pages.length, total: pageCount });
+    // Slicing a tile is synchronous, so without a yield here the whole loop
+    // runs in one microtask burst and every onProgress call above lands
+    // between two paints — real numbers that never actually get drawn. A
+    // bare rAF wait would fix that while the tab is visible, but Chrome
+    // never runs rAF callbacks while a tab is hidden — a plain rAF yield
+    // here would stall the whole export on "Exporting page N of M…" until
+    // the user switches back, with no way out. Racing it against a short
+    // timer (setTimeout keeps firing, just possibly throttled, while
+    // hidden) means a foregrounded tab still gets the one-frame paint
+    // guarantee (rAF wins in ~16ms), and a backgrounded one still finishes
+    // the export instead of hanging on it.
+    await new Promise((resolve) => {
+      let rafId = 0;
+      let timerId = 0;
+      const done = () => {
+        cancelAnimationFrame(rafId);
+        clearTimeout(timerId);
+        resolve(undefined);
+      };
+      rafId = requestAnimationFrame(done);
+      timerId = window.setTimeout(done, 50);
+    });
+  }
+  await savePdf(pages, filename);
+}
+
+function sliceCanvas(
+  src: HTMLCanvasElement,
+  sx: number,
+  sy: number,
+  sw: number,
+  sh: number,
+): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = sw;
+  c.height = sh;
+  const ctx = c.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D context unavailable');
+  ctx.drawImage(src, sx, sy, sw, sh, 0, 0, sw, sh);
+  return c;
+}
+
+async function savePdf(pages: PdfPage[], filename: string): Promise<void> {
+  const blob = await buildPdf(pages);
+  const url = URL.createObjectURL(blob);
+  try {
+    await chrome.downloads.download({ url, filename: toDownloadPath(filename), saveAs: false });
+  } finally {
+    // Give the download time to start before revoking the blob URL.
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+}

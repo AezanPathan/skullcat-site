@@ -1,0 +1,212 @@
+{
+  "extName": {
+    "message": "Volledige pagina screenshot & schermrecorder - OpenScreenShot",
+    "description": "Extension name shown in Chrome UI."
+  },
+  "extNameFirefox": {
+    "message": "Volledige pagina screenshot - OpenScreenShot",
+    "description": "Extension name in the Firefox build, which takes screenshots only and has no recorder."
+  },
+  "extDesc": {
+    "message": "Screenshot van de volledige pagina met één klik. Open source, 100% privé, geen account, geen uploads.",
+    "description": "Extension description shown in the Chrome Web Store and extensions page."
+  },
+  "modeFullPage": {
+    "message": "Volledige pagina",
+    "description": "Capture mode: capture the entire scrolling page."
+  },
+  "modeFullPageSub": {
+    "message": "Leg de hele scrollende pagina vast",
+    "description": "Subtitle for the Full Page capture mode."
+  },
+  "modeVisible": {
+    "message": "Zichtbaar gebied",
+    "description": "Capture mode: capture what is currently visible."
+  },
+  "modeVisibleSub": {
+    "message": "Wat je nu ziet",
+    "description": "Subtitle for the Visible Area capture mode."
+  },
+  "modeRegion": {
+    "message": "Geselecteerd gebied",
+    "description": "Capture mode: capture a user-dragged region."
+  },
+  "modeRegionSub": {
+    "message": "Klik en sleep om te selecteren",
+    "description": "Subtitle for the Selected Region capture mode."
+  },
+  "modeElement": {
+    "message": "Element vastleggen",
+    "description": "Capture mode: capture a single page element."
+  },
+  "modeElementSub": {
+    "message": "Selecteer een kaart, grafiek, afbeelding of tabel",
+    "description": "Subtitle for the element capture mode."
+  },
+  "elementPickerTitle": {
+    "message": "Een element vastleggen",
+    "description": "Element picker: heading."
+  },
+  "elementPickerInstructions": {
+    "message": "Beweeg de muis erover om te selecteren · ↑ Groter · ↓ Kleiner · ←/→ Andere elementen · Enter Vastleggen · Esc Annuleren",
+    "description": "Element picker: pointer and keyboard instructions."
+  },
+  "elementPickerEmpty": {
+    "message": "Wijs een element aan of gebruik ←/→ om er een te kiezen.",
+    "description": "Element picker: hint when no element is selected."
+  },
+  "elementPickerClipped": {
+    "message": "Dit element is niet volledig zichtbaar. Scrol het in beeld of leg de volledige pagina vast.",
+    "description": "Element picker: warning when the selected element is not fully visible."
+  },
+  "elementPickerCapture": {
+    "message": "Vastleggen",
+    "description": "Element picker: button to capture the selected element."
+  },
+  "elementPickerFullPage": {
+    "message": "Volledige pagina vastleggen",
+    "description": "Element picker: button to capture the full page instead."
+  },
+  "elementPickerCancel": {
+    "message": "Annuleren",
+    "description": "Element picker: button to cancel selection."
+  },
+  "elementPickerLarger": {
+    "message": "Groter gebied",
+    "description": "Element picker: button to select a larger containing element."
+  },
+  "elementPickerSmaller": {
+    "message": "Kleiner gebied",
+    "description": "Element picker: button to select a smaller nested element."
+  },
+  "settingsTitle": {
+    "message": "Instellingen",
+    "description": "Settings panel heading."
+  },
+  "repeatLastRegion": {
+    "message": "Laatste gebied herhalen",
+    "description": "Footer link and context menu item that re-captures the previous region selection."
+  },
+  "expressLabel": {
+    "message": "Express-modus met één klik",
+    "description": "Name of the one-click express setting: the Settings card, the editor status bar switch, and the icon context-menu checkbox."
+  },
+  "expressHint": {
+    "message": "Zet uit om elke keer te kiezen tussen Volledige pagina, Zichtbaar gebied of Geselecteerd gebied.",
+    "description": "Hint shown under the express row when express mode is on."
+  },
+  "editorExpressOn": {
+    "message": "Express-modus met één klik staat aan.",
+    "description": "Editor status bar, bold: express mode is on. settingsExpressHint follows it."
+  },
+  "editorExpressOff": {
+    "message": "Express-modus met één klik staat uit.",
+    "description": "Editor status bar, bold: express mode is off."
+  },
+  "editorExpressOffHint": {
+    "message": "Zet hem aan om de bevestiging vóór het vastleggen over te slaan.",
+    "description": "Editor status bar, after editorExpressOff: asks the user to turn express mode on."
+  },
+  "settingsExpressHint": {
+    "message": "Eén klik op het werkbalkpictogram legt de volledige pagina vast. Zet uit om elke keer een modus te kiezen.",
+    "description": "Explains one-click express mode under its switch in Settings, and in the editor status bar when it is on."
+  },
+  "expressMigratedNote": {
+    "message": "Een klik op het pictogram legt nu de volledige pagina vast. Rechtsklik voor andere modi.",
+    "description": "One-time editor note after the update that made a toolbar click capture the full page."
+  },
+  "setupPinTitle": {
+    "message": "OpenScreenShot vastzetten",
+    "description": "Popup: nudge to pin the extension, shown while it is not on the toolbar."
+  },
+  "setupPinSub": {
+    "message": "Klik hierboven op 🧩 en dan op 📌 naast OpenScreenShot.",
+    "description": "Popup: how to pin — the puzzle menu sits directly above the popup."
+  },
+  "editorCopyIdle": {
+    "message": "Kopiëren",
+    "description": "Editor topbar: the Copy button’s resting label."
+  },
+  "editorMarkup": {
+    "message": "Bewerken",
+    "description": "Editor topbar (View mode): button that opens the Markup chrome."
+  },
+  "editorFitHint": {
+    "message": "Passend gemaakt aan het venster. Scroll of zoom voor de volledige grootte.",
+    "description": "Editor: one-time note when a capture opens fitted well below actual size."
+  },
+  "editorSaveImage": {
+    "message": "Afbeelding opslaan",
+    "description": "Editor topbar: label on the primary Save image button (opens the export dialog)."
+  },
+  "editorPdfLabel": {
+    "message": "PDF",
+    "description": "Editor topbar: label on the one-click PDF export button."
+  },
+  "editorRateLabel": {
+    "message": "Beoordelen",
+    "description": "Editor topbar: label on the always-visible Rate star."
+  },
+  "editorRateTooltip": {
+    "message": "30 seconden. Zo vinden anderen een privé screenshot-tool.",
+    "description": "Editor topbar: tooltip on the Rate star."
+  },
+  "ratePromptHeadline": {
+    "message": "Bespaart dit je tijd?",
+    "description": "One-time post-export rate prompt: headline."
+  },
+  "ratePromptBody": {
+    "message": "Een korte beoordeling in de Chrome Web Store is de belangrijkste manier waarop een privé tool gevonden wordt. Het duurt 30 seconden.",
+    "description": "One-time post-export rate prompt: body."
+  },
+  "ratePromptRate": {
+    "message": "Beoordelen in de Chrome Web Store",
+    "description": "One-time post-export rate prompt: button that opens the reviews tab."
+  },
+  "ratePromptLater": {
+    "message": "Niet nu",
+    "description": "One-time post-export rate prompt: dismiss button."
+  },
+  "errNoTab": {
+    "message": "Geen actief tabblad gevonden.",
+    "description": "Capture error: no active tab."
+  },
+  "errProtectedPage": {
+    "message": "Deze beveiligde pagina kan niet worden vastgelegd.",
+    "description": "Capture error: browser-protected page."
+  },
+  "errFileAccess": {
+    "message": "Zet ‘Toegang tot bestand-URL's toestaan’ aan in de details van deze extensie om lokale bestanden vast te leggen.",
+    "description": "Capture error: a file:// page while Chrome's \"Allow access to file URLs\" toggle is off. Quote Chrome's own label for that toggle in this locale."
+  },
+  "errBlankPage": {
+    "message": "Deze pagina heeft geen scrollbare inhoud.",
+    "description": "Capture error: nothing scrollable to capture."
+  },
+  "errTooLarge": {
+    "message": "Deze pagina is te hoog, zelfs verdeeld over 6 afbeeldingen ($PX$ px). Probeer het zichtbare of een geselecteerd gebied.",
+    "description": "Capture error: page taller than one canvas. $PX$ is the height in device pixels.",
+    "placeholders": {
+      "px": {
+        "content": "$1",
+        "example": "35000"
+      }
+    }
+  },
+  "errNoRegion": {
+    "message": "Geen opgeslagen gebied past op dit scherm — selecteer er eerst een.",
+    "description": "Capture error: repeat-last-region with no region that fits."
+  },
+  "errClipboard": {
+    "message": "Kon de screenshot niet naar het klembord kopiëren.",
+    "description": "Quick-action error: clipboard write failed."
+  },
+  "errSave": {
+    "message": "Kon de screenshot niet op schijf opslaan.",
+    "description": "Quick-action error: disk save failed."
+  },
+  "errUnknown": {
+    "message": "Vastleggen is onverwacht mislukt.",
+    "description": "Capture error: unexpected failure."
+  }
+}

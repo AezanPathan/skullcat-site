@@ -1,0 +1,237 @@
+/* Hallmark · macrostructure: Workbench · tone: Workspace · anchor hue: blue
+ * Shared source of truth for extension chrome; see design.md.
+ * npm run tokens generates design-tokens.ts for canvas consumers.
+ * Keep theme colors in hex: the canvas generator and contrast tests consume them.
+ * --text-1/2/3 are body inks; --accent-ink is the accessible action ink.
+ * --border is a control edge (3:1); --rule is a decorative divider.
+ * --danger-ink also labels warning tints. Brand hues are non-text marks.
+ * Canvas ink, swatches and frame presets remain independent of the UI theme.
+ */
+
+/* @tokens base */
+:root {
+  /* spacing */
+  --s-05: 2px;
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+
+  /* radius */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 24px;
+  --r-full: 9999px;
+
+  --r-xl: 28px;
+
+  /* shadows */
+  --sh-sm: 0 1px 2px rgba(60, 64, 67, 0.16);
+  --sh-md: 0 2px 6px rgba(60, 64, 67, 0.16), 0 8px 24px rgba(60, 64, 67, 0.08);
+  --sh-lg: 0 8px 32px rgba(32, 33, 36, 0.2);
+
+  /* families */
+  --font: 'Roboto', 'Arial', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+
+  /*
+   * Type scale: 11px, x1.125 a step, rounded to the px grid (11, 12.375, 13.92,
+   * 15.66, 17.62, 19.82). The 15.66 rung has no name here: the site orders
+   * --fs-md below --fs-base, so naming a rung above --fs-base "md" would invert
+   * that reading for anyone working across both trees. --fs-2xl carries the
+   * setup hero at its shipped 24px, off the ratio.
+   */
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 14px;
+  --fs-lg: 18px;
+  --fs-xl: 20px;
+  --fs-2xl: 24px;
+  --fs-3xl: 32px;
+
+  /* motion — --ease-out is the cubic-bezier form of the CSS ease-out keyword */
+  --dur-fast: 120ms;
+  --dur-mid: 150ms;
+  --dur-slow: 250ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+
+  /*
+   * Breakpoints. A CSS custom property cannot appear in a @media condition
+   * ("@media (max-width: var(--bp-sm))" is invalid and never matches), so
+   * these have no CSS caller — every "@media (max-width: ...)" in the four
+   * surface stylesheets spells the number out literally instead. These two
+   * tokens are the canonical values that every one of those literals must
+   * equal; tests/unit/breakpoint-guard.test.ts reads them off the generated
+   * src/shared/design-tokens.ts and fails on any stylesheet width that
+   * disagrees, so the numbers cannot drift even though var() can't enforce it.
+   *   --bp-sm  a two-column grid (the shortcut sheet, the setup feature grid)
+   *            stacks to one column below this.
+   *   --bp-md  the recorder's fixed-width settings rail stacks below the
+   *            stage instead of beside it below this.
+   */
+  --bp-sm: 480px;
+  --bp-md: 768px;
+
+  /*
+   * Canvas ink. Painted onto image pixels (annotation marks, the JPEG export
+   * background, the beautify-frame shadow plate), so it never follows the UI
+   * theme. This group and the frame group below have no CSS callers by
+   * design: only canvas code reads them, through the generated module. They
+   * are live, not dead.
+   *
+   * The plate/checkerboard/hairline drawn around a frame-less preview and the
+   * selection outline are UI chrome, not ink: canvas.ts reads them straight
+   * off --surface-1/--surface-3/--rule (getComputedStyle, live per paint, so
+   * a theme flip repaints them) and annotations.ts's selection outline uses
+   * fixed max-contrast literals instead of a token, since it has to survive
+   * arbitrary image pixels rather than follow either theme. Neither reaches
+   * an exported image — see canvas.ts's render() vs composeFinal().
+   */
+  --canvas-paper: #ffffff;
+  --canvas-mark: #ffffff;
+  --canvas-mark-ink: #1d1d1f;
+  --canvas-redact: #111318;
+
+  /*
+   * Annotation swatches. These are the product, not the chrome: they land on
+   * the user's screenshot, so they keep their values in both themes. The
+   * screen-reader name for each one lives beside it in src/editor/palette.ts.
+   */
+  --swatch-red: #ff3b30;
+  --swatch-orange: #ff9500;
+  --swatch-yellow: #ffcc00;
+  --swatch-green: #34c759;
+  --swatch-blue: #0071e3;
+  --swatch-purple: #af52de;
+  --swatch-white: #ffffff;
+  --swatch-black: #1d1d1f;
+
+  /* Beautify frame backgrounds, one gradient pair each. */
+  --frame-ink-from: #2b303b;
+  --frame-ink-to: #12141a;
+  --frame-coral-from: #ff7a59;
+  --frame-coral-to: #e0326b;
+  --frame-dusk-from: #4c3a8f;
+  --frame-dusk-to: #1e1b3a;
+  --frame-mint-from: #37d2a8;
+  --frame-mint-to: #0f8f8f;
+  --frame-sand-from: #f7d08a;
+  --frame-sand-to: #dd8a5b;
+  --frame-sky-from: #8fc4ff;
+  --frame-sky-to: #3f7ae0;
+}
+
+/* @tokens light */
+:root,
+:root[data-theme='light'] {
+  --surface-1: #ffffff;
+  --surface-2: #f8fafd;
+  --surface-3: #e9eef6;
+  --stage-bg: #f0f4f9;
+  --text-1: #202124;
+  --text-2: #535861;
+  --text-2-strong: var(--text-1);
+  --text-3: #60656d;
+  --accent: #1a73e8;
+  --accent-ink: #0b57d0;
+  --accent-ink-hover: #084bb5;
+  --accent-ink-pressed: #06429f;
+  --accent-subtle: #d3e3fd;
+  --on-accent: #ffffff;
+  --border: #7c838d;
+  --border-strong: #535861;
+  --rule: #dce1e8;
+  --border-focus: #0b57d0;
+  --ring-selected: #0b57d0;
+  --danger: #c5221f;
+  --danger-ink: #98201c;
+  --success: #188038;
+  --warning: #fbbc04;
+  /* translucent hover for ghost (transparent-background) buttons */
+  --hover-overlay: rgba(0, 0, 0, 0.05);
+
+  --brand-blue: #4285f4;
+  --brand-red: #ea4335;
+  --brand-yellow: #fbbc04;
+  --brand-green: #34a853;
+}
+
+/* @tokens dark */
+:root[data-theme='dark'] {
+  --surface-1: #202124;
+  --surface-2: #282a2e;
+  --surface-3: #34383e;
+  --stage-bg: #17191d;
+  --text-1: #e8eaed;
+  --text-2: #bdc1c6;
+  --text-2-strong: var(--text-1);
+  --text-3: #a8adb5;
+  --accent: #8ab4f8;
+  --accent-ink: #a8c7fa;
+  --accent-ink-hover: #c2d7fc;
+  --accent-ink-pressed: #8ab4f8;
+  --accent-subtle: #23395b;
+  --on-accent: #062e6f;
+  --border: #9299a3;
+  --border-strong: #bdc1c6;
+  --rule: #454951;
+  --border-focus: #a8c7fa;
+  --ring-selected: #a8c7fa;
+  --danger: #f28b82;
+  --danger-ink: #ffd6d0;
+  --success: #81c995;
+  --warning: #fdd663;
+  --hover-overlay: rgba(255, 255, 255, 0.09);
+
+  --brand-blue: #8ab4f8;
+  --brand-red: #f28b82;
+  --brand-yellow: #fdd663;
+  --brand-green: #81c995;
+}
+
+/*
+ * Honour the OS preference when no explicit theme is set: repeat the dark
+ * values from the @tokens dark block above. The generator merges repeats of
+ * the same group and throws if they disagree (scripts/gen-design-tokens.mjs),
+ * so this copy cannot drift from the one above. Guarded against
+ * [data-theme='light'] so an explicit light choice still wins over OS dark;
+ * :root[data-theme='dark'] above already wins over OS light unconditionally,
+ * needing no guard here.
+ */
+@media (prefers-color-scheme: dark) {
+  /* @tokens dark */
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --surface-1: #202124;
+    --surface-2: #282a2e;
+    --surface-3: #34383e;
+    --stage-bg: #17191d;
+    --text-1: #e8eaed;
+    --text-2: #bdc1c6;
+    --text-2-strong: var(--text-1);
+    --text-3: #a8adb5;
+    --accent: #8ab4f8;
+    --accent-ink: #a8c7fa;
+    --accent-ink-hover: #c2d7fc;
+    --accent-ink-pressed: #8ab4f8;
+    --accent-subtle: #23395b;
+    --on-accent: #062e6f;
+    --border: #9299a3;
+    --border-strong: #bdc1c6;
+    --rule: #454951;
+    --border-focus: #a8c7fa;
+    --ring-selected: #a8c7fa;
+    --danger: #f28b82;
+    --danger-ink: #ffd6d0;
+    --success: #81c995;
+    --warning: #fdd663;
+    --hover-overlay: rgba(255, 255, 255, 0.09);
+
+    --brand-blue: #8ab4f8;
+    --brand-red: #f28b82;
+    --brand-yellow: #fdd663;
+    --brand-green: #81c995;
+  }
+}

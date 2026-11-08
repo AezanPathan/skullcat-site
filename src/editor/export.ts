@@ -1,0 +1,48 @@
+/**
+ * Image export helpers for the editor.
+ *
+ * The controller composites the image + annotations at full resolution
+ * (composeFinal); this module handles format conversion + the download. PDF is
+ * added in the next commit; this covers PNG/JPEG/WebP.
+ */
+
+import { tokens } from '../shared/design-tokens';
+import { t } from './i18n';
+
+export type ImageFormat = 'png' | 'jpeg' | 'webp';
+
+export const IMAGE_FORMATS: { id: ImageFormat; label: string; hint: string }[] = [
+  { id: 'png', label: t('editorFormatPngLabel'), hint: t('editorFormatPngHint') },
+  { id: 'jpeg', label: t('editorFormatJpegLabel'), hint: t('editorFormatJpegHint') },
+  { id: 'webp', label: t('editorFormatWebpLabel'), hint: t('editorFormatWebpHint') },
+];
+
+/** Convert a canvas to a data URL for the given format. JPEG gets a white background. */
+export function canvasToDataUrl(
+  canvas: HTMLCanvasElement,
+  format: ImageFormat,
+  quality: number,
+): string {
+  if (format === 'png') return canvas.toDataURL('image/png');
+  if (format === 'jpeg') {
+    // JPEG has no alpha channel — paint a white background behind the image.
+    const tmp = document.createElement('canvas');
+    tmp.width = canvas.width;
+    tmp.height = canvas.height;
+    const ctx = tmp.getContext('2d');
+    if (!ctx) return canvas.toDataURL('image/jpeg', quality);
+    ctx.fillStyle = tokens.canvasPaper;
+    ctx.fillRect(0, 0, tmp.width, tmp.height);
+    ctx.drawImage(canvas, 0, 0);
+    return tmp.toDataURL('image/jpeg', quality);
+  }
+  return canvas.toDataURL('image/webp', quality);
+}
+
+export { downloadDataUrl } from '../shared/download';
+
+/** Append the right extension for a format. */
+export function withExtension(base: string, format: ImageFormat): string {
+  const ext = format === 'jpeg' ? 'jpg' : format;
+  return `${base}.${ext}`;
+}

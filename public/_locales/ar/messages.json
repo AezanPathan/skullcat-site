@@ -1,0 +1,212 @@
+{
+  "extName": {
+    "message": "لقطة شاشة للصفحة الكاملة ومسجّل الشاشة - OpenScreenShot",
+    "description": "Extension name shown in Chrome UI."
+  },
+  "extNameFirefox": {
+    "message": "لقطة شاشة للصفحة الكاملة - OpenScreenShot",
+    "description": "Extension name in the Firefox build, which takes screenshots only and has no recorder."
+  },
+  "extDesc": {
+    "message": "لقطة شاشة للصفحة الكاملة بنقرة واحدة. مفتوح المصدر، خصوصية 100%، بلا حساب، بلا رفع.",
+    "description": "Extension description shown in the Chrome Web Store and extensions page."
+  },
+  "modeFullPage": {
+    "message": "الصفحة الكاملة",
+    "description": "Capture mode: capture the entire scrolling page."
+  },
+  "modeFullPageSub": {
+    "message": "التقاط الصفحة القابلة للتمرير بأكملها",
+    "description": "Subtitle for the Full Page capture mode."
+  },
+  "modeVisible": {
+    "message": "المنطقة المرئية",
+    "description": "Capture mode: capture what is currently visible."
+  },
+  "modeVisibleSub": {
+    "message": "ما تراه الآن",
+    "description": "Subtitle for the Visible Area capture mode."
+  },
+  "modeRegion": {
+    "message": "منطقة محددة",
+    "description": "Capture mode: capture a user-dragged region."
+  },
+  "modeRegionSub": {
+    "message": "انقر واسحب للتحديد",
+    "description": "Subtitle for the Selected Region capture mode."
+  },
+  "modeElement": {
+    "message": "التقاط عنصر",
+    "description": "Capture mode: capture a single page element."
+  },
+  "modeElementSub": {
+    "message": "اختر بطاقة أو رسمًا بيانيًا أو صورة أو جدولًا",
+    "description": "Subtitle for the element capture mode."
+  },
+  "elementPickerTitle": {
+    "message": "التقاط عنصر",
+    "description": "Element picker: heading."
+  },
+  "elementPickerInstructions": {
+    "message": "مرّر المؤشر للتحديد · ↑ أكبر · ↓ أصغر · ←/→ عناصر أخرى · Enter التقاط · Esc إلغاء",
+    "description": "Element picker: pointer and keyboard instructions."
+  },
+  "elementPickerEmpty": {
+    "message": "أشر إلى عنصر، أو استخدم ←/→ لاختياره.",
+    "description": "Element picker: hint when no element is selected."
+  },
+  "elementPickerClipped": {
+    "message": "هذا العنصر غير ظاهر بالكامل. مرّر الصفحة لإظهاره أو التقط الصفحة الكاملة.",
+    "description": "Element picker: warning when the selected element is not fully visible."
+  },
+  "elementPickerCapture": {
+    "message": "التقاط",
+    "description": "Element picker: button to capture the selected element."
+  },
+  "elementPickerFullPage": {
+    "message": "التقاط الصفحة الكاملة",
+    "description": "Element picker: button to capture the full page instead."
+  },
+  "elementPickerCancel": {
+    "message": "إلغاء",
+    "description": "Element picker: button to cancel selection."
+  },
+  "elementPickerLarger": {
+    "message": "منطقة أكبر",
+    "description": "Element picker: button to select a larger containing element."
+  },
+  "elementPickerSmaller": {
+    "message": "منطقة أصغر",
+    "description": "Element picker: button to select a smaller nested element."
+  },
+  "settingsTitle": {
+    "message": "الإعدادات",
+    "description": "Settings panel heading."
+  },
+  "repeatLastRegion": {
+    "message": "تكرار آخر منطقة",
+    "description": "Footer link and context menu item that re-captures the previous region selection."
+  },
+  "expressLabel": {
+    "message": "وضع Express بنقرة واحدة",
+    "description": "Name of the one-click express setting: the Settings card, the editor status bar switch, and the icon context-menu checkbox."
+  },
+  "expressHint": {
+    "message": "أوقفه لاختيار الصفحة الكاملة أو المنطقة المرئية أو منطقة محددة في كل مرة.",
+    "description": "Hint shown under the express row when express mode is on."
+  },
+  "editorExpressOn": {
+    "message": "وضع Express بنقرة واحدة مُفعّل.",
+    "description": "Editor status bar, bold: express mode is on. settingsExpressHint follows it."
+  },
+  "editorExpressOff": {
+    "message": "وضع Express بنقرة واحدة متوقف.",
+    "description": "Editor status bar, bold: express mode is off."
+  },
+  "editorExpressOffHint": {
+    "message": "فعّله لتخطي التأكيد قبل الالتقاط.",
+    "description": "Editor status bar, after editorExpressOff: asks the user to turn express mode on."
+  },
+  "settingsExpressHint": {
+    "message": "نقرة واحدة على أيقونة شريط الأدوات تلتقط الصفحة الكاملة. أوقفه لاختيار وضع في كل مرة.",
+    "description": "Explains one-click express mode under its switch in Settings, and in the editor status bar when it is on."
+  },
+  "expressMigratedNote": {
+    "message": "النقر على الأيقونة يلتقط الآن الصفحة الكاملة. انقر بزر الفأرة الأيمن للأوضاع الأخرى.",
+    "description": "One-time editor note after the update that made a toolbar click capture the full page."
+  },
+  "setupPinTitle": {
+    "message": "ثبّت OpenScreenShot",
+    "description": "Popup: nudge to pin the extension, shown while it is not on the toolbar."
+  },
+  "setupPinSub": {
+    "message": "انقر على 🧩 في الأعلى، ثم على 📌 بجوار OpenScreenShot.",
+    "description": "Popup: how to pin — the puzzle menu sits directly above the popup."
+  },
+  "editorCopyIdle": {
+    "message": "نسخ",
+    "description": "Editor topbar: the Copy button’s resting label."
+  },
+  "editorMarkup": {
+    "message": "تعديل",
+    "description": "Editor topbar (View mode): button that opens the Markup chrome."
+  },
+  "editorFitHint": {
+    "message": "تم ملاءمتها للنافذة. مرّر أو كبّر لعرضها بالحجم الكامل.",
+    "description": "Editor: one-time note when a capture opens fitted well below actual size."
+  },
+  "editorSaveImage": {
+    "message": "حفظ الصورة",
+    "description": "Editor topbar: label on the primary Save image button (opens the export dialog)."
+  },
+  "editorPdfLabel": {
+    "message": "PDF",
+    "description": "Editor topbar: label on the one-click PDF export button."
+  },
+  "editorRateLabel": {
+    "message": "قيّم",
+    "description": "Editor topbar: label on the always-visible Rate star."
+  },
+  "editorRateTooltip": {
+    "message": "30 ثانية. هكذا يجد الآخرون أداة لقطات شاشة تحترم الخصوصية.",
+    "description": "Editor topbar: tooltip on the Rate star."
+  },
+  "ratePromptHeadline": {
+    "message": "هل توفر لك هذه الأداة الوقت؟",
+    "description": "One-time post-export rate prompt: headline."
+  },
+  "ratePromptBody": {
+    "message": "تقييم قصير في متجر Chrome الإلكتروني هو الطريقة الأساسية لاكتشاف أداة تحترم الخصوصية. يستغرق 30 ثانية.",
+    "description": "One-time post-export rate prompt: body."
+  },
+  "ratePromptRate": {
+    "message": "قيّم في متجر Chrome الإلكتروني",
+    "description": "One-time post-export rate prompt: button that opens the reviews tab."
+  },
+  "ratePromptLater": {
+    "message": "ليس الآن",
+    "description": "One-time post-export rate prompt: dismiss button."
+  },
+  "errNoTab": {
+    "message": "لم يتم العثور على علامة تبويب نشطة.",
+    "description": "Capture error: no active tab."
+  },
+  "errProtectedPage": {
+    "message": "يتعذر التقاط هذه الصفحة المحمية.",
+    "description": "Capture error: browser-protected page."
+  },
+  "errFileAccess": {
+    "message": "لالتقاط الملفات المحلية، فعّل \"السماح بالوصول إلى عناوين URL للملفات\" في صفحة تفاصيل هذه الإضافة.",
+    "description": "Capture error: a file:// page while Chrome's \"Allow access to file URLs\" toggle is off. Quote Chrome's own label for that toggle in this locale."
+  },
+  "errBlankPage": {
+    "message": "لا تحتوي هذه الصفحة على محتوى قابل للتمرير.",
+    "description": "Capture error: nothing scrollable to capture."
+  },
+  "errTooLarge": {
+    "message": "هذه الصفحة أطول من أن تُلتقط حتى عند تقسيمها إلى 6 صور ($PX$ بكسل). جرّب المنطقة المرئية أو منطقة محددة.",
+    "description": "Capture error: page taller than one canvas. $PX$ is the height in device pixels.",
+    "placeholders": {
+      "px": {
+        "content": "$1",
+        "example": "35000"
+      }
+    }
+  },
+  "errNoRegion": {
+    "message": "المنطقة المحفوظة لا تناسب هذه الشاشة — حدد منطقة أولاً.",
+    "description": "Capture error: repeat-last-region with no region that fits."
+  },
+  "errClipboard": {
+    "message": "تعذر نسخ لقطة الشاشة إلى الحافظة.",
+    "description": "Quick-action error: clipboard write failed."
+  },
+  "errSave": {
+    "message": "تعذر حفظ لقطة الشاشة على القرص.",
+    "description": "Quick-action error: disk save failed."
+  },
+  "errUnknown": {
+    "message": "فشل الالتقاط بشكل غير متوقع.",
+    "description": "Capture error: unexpected failure."
+  }
+}

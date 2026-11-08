@@ -1,0 +1,212 @@
+{
+  "extName": {
+    "message": "Zrzut całej strony i nagrywanie ekranu - OpenScreenShot",
+    "description": "Extension name shown in Chrome UI."
+  },
+  "extNameFirefox": {
+    "message": "Zrzut całej strony - OpenScreenShot",
+    "description": "Extension name in the Firefox build, which takes screenshots only and has no recorder."
+  },
+  "extDesc": {
+    "message": "Zrzut całej strony jednym kliknięciem. Open source, 100% prywatnie, bez konta, bez wysyłania.",
+    "description": "Extension description shown in the Chrome Web Store and extensions page."
+  },
+  "modeFullPage": {
+    "message": "Cała strona",
+    "description": "Capture mode: capture the entire scrolling page."
+  },
+  "modeFullPageSub": {
+    "message": "Przechwyć całą przewijaną stronę",
+    "description": "Subtitle for the Full Page capture mode."
+  },
+  "modeVisible": {
+    "message": "Widoczny obszar",
+    "description": "Capture mode: capture what is currently visible."
+  },
+  "modeVisibleSub": {
+    "message": "To, co widzisz teraz",
+    "description": "Subtitle for the Visible Area capture mode."
+  },
+  "modeRegion": {
+    "message": "Zaznaczony obszar",
+    "description": "Capture mode: capture a user-dragged region."
+  },
+  "modeRegionSub": {
+    "message": "Kliknij i przeciągnij, aby zaznaczyć",
+    "description": "Subtitle for the Selected Region capture mode."
+  },
+  "modeElement": {
+    "message": "Przechwyć element",
+    "description": "Capture mode: capture a single page element."
+  },
+  "modeElementSub": {
+    "message": "Wybierz kartę, wykres, obraz lub tabelę",
+    "description": "Subtitle for the element capture mode."
+  },
+  "elementPickerTitle": {
+    "message": "Przechwyć element",
+    "description": "Element picker: heading."
+  },
+  "elementPickerInstructions": {
+    "message": "Najedź kursorem, aby wybrać · ↑ Większy · ↓ Mniejszy · ←/→ Inne elementy · Enter Przechwyć · Esc Anuluj",
+    "description": "Element picker: pointer and keyboard instructions."
+  },
+  "elementPickerEmpty": {
+    "message": "Wskaż element lub użyj ←/→, aby go wybrać.",
+    "description": "Element picker: hint when no element is selected."
+  },
+  "elementPickerClipped": {
+    "message": "Ten element nie jest w pełni widoczny. Przewiń stronę, aby go wyświetlić, lub przechwyć całą stronę.",
+    "description": "Element picker: warning when the selected element is not fully visible."
+  },
+  "elementPickerCapture": {
+    "message": "Przechwyć",
+    "description": "Element picker: button to capture the selected element."
+  },
+  "elementPickerFullPage": {
+    "message": "Przechwyć całą stronę",
+    "description": "Element picker: button to capture the full page instead."
+  },
+  "elementPickerCancel": {
+    "message": "Anuluj",
+    "description": "Element picker: button to cancel selection."
+  },
+  "elementPickerLarger": {
+    "message": "Większy obszar",
+    "description": "Element picker: button to select a larger containing element."
+  },
+  "elementPickerSmaller": {
+    "message": "Mniejszy obszar",
+    "description": "Element picker: button to select a smaller nested element."
+  },
+  "settingsTitle": {
+    "message": "Ustawienia",
+    "description": "Settings panel heading."
+  },
+  "repeatLastRegion": {
+    "message": "Powtórz ostatni obszar",
+    "description": "Footer link and context menu item that re-captures the previous region selection."
+  },
+  "expressLabel": {
+    "message": "Tryb Express jednym kliknięciem",
+    "description": "Name of the one-click express setting: the Settings card, the editor status bar switch, and the icon context-menu checkbox."
+  },
+  "expressHint": {
+    "message": "Wyłącz, aby za każdym razem wybierać: Cała strona, Widoczny obszar lub Zaznaczony obszar.",
+    "description": "Hint shown under the express row when express mode is on."
+  },
+  "editorExpressOn": {
+    "message": "Tryb Express jednym kliknięciem jest włączony.",
+    "description": "Editor status bar, bold: express mode is on. settingsExpressHint follows it."
+  },
+  "editorExpressOff": {
+    "message": "Tryb Express jednym kliknięciem jest wyłączony.",
+    "description": "Editor status bar, bold: express mode is off."
+  },
+  "editorExpressOffHint": {
+    "message": "Włącz go, aby pomijać potwierdzenie przed przechwyceniem.",
+    "description": "Editor status bar, after editorExpressOff: asks the user to turn express mode on."
+  },
+  "settingsExpressHint": {
+    "message": "Jedno kliknięcie ikony na pasku narzędzi przechwytuje całą stronę. Wyłącz, aby za każdym razem wybierać tryb.",
+    "description": "Explains one-click express mode under its switch in Settings, and in the editor status bar when it is on."
+  },
+  "expressMigratedNote": {
+    "message": "Kliknięcie ikony przechwytuje teraz całą stronę. Inne tryby po kliknięciu prawym przyciskiem.",
+    "description": "One-time editor note after the update that made a toolbar click capture the full page."
+  },
+  "setupPinTitle": {
+    "message": "Przypnij OpenScreenShot",
+    "description": "Popup: nudge to pin the extension, shown while it is not on the toolbar."
+  },
+  "setupPinSub": {
+    "message": "Kliknij 🧩 powyżej, a potem 📌 obok OpenScreenShot.",
+    "description": "Popup: how to pin — the puzzle menu sits directly above the popup."
+  },
+  "editorCopyIdle": {
+    "message": "Kopiuj",
+    "description": "Editor topbar: the Copy button’s resting label."
+  },
+  "editorMarkup": {
+    "message": "Edytuj",
+    "description": "Editor topbar (View mode): button that opens the Markup chrome."
+  },
+  "editorFitHint": {
+    "message": "Dopasowano do okna. Przewiń lub powiększ, aby zobaczyć pełny rozmiar.",
+    "description": "Editor: one-time note when a capture opens fitted well below actual size."
+  },
+  "editorSaveImage": {
+    "message": "Zapisz obraz",
+    "description": "Editor topbar: label on the primary Save image button (opens the export dialog)."
+  },
+  "editorPdfLabel": {
+    "message": "PDF",
+    "description": "Editor topbar: label on the one-click PDF export button."
+  },
+  "editorRateLabel": {
+    "message": "Oceń",
+    "description": "Editor topbar: label on the always-visible Rate star."
+  },
+  "editorRateTooltip": {
+    "message": "30 sekund. Tak inni znajdują prywatne narzędzie do zrzutów ekranu.",
+    "description": "Editor topbar: tooltip on the Rate star."
+  },
+  "ratePromptHeadline": {
+    "message": "Czy to oszczędza Twój czas?",
+    "description": "One-time post-export rate prompt: headline."
+  },
+  "ratePromptBody": {
+    "message": "Krótka ocena w Chrome Web Store to główny sposób, w jaki prywatne narzędzie zostaje znalezione. Zajmuje 30 sekund.",
+    "description": "One-time post-export rate prompt: body."
+  },
+  "ratePromptRate": {
+    "message": "Oceń w Chrome Web Store",
+    "description": "One-time post-export rate prompt: button that opens the reviews tab."
+  },
+  "ratePromptLater": {
+    "message": "Nie teraz",
+    "description": "One-time post-export rate prompt: dismiss button."
+  },
+  "errNoTab": {
+    "message": "Nie znaleziono aktywnej karty.",
+    "description": "Capture error: no active tab."
+  },
+  "errProtectedPage": {
+    "message": "Nie można wykonać zrzutu tej chronionej strony.",
+    "description": "Capture error: browser-protected page."
+  },
+  "errFileAccess": {
+    "message": "Aby przechwytywać pliki lokalne, włącz „Zezwalaj na dostęp do adresów URL plików” w szczegółach tego rozszerzenia.",
+    "description": "Capture error: a file:// page while Chrome's \"Allow access to file URLs\" toggle is off. Quote Chrome's own label for that toggle in this locale."
+  },
+  "errBlankPage": {
+    "message": "Ta strona nie ma przewijanej zawartości.",
+    "description": "Capture error: nothing scrollable to capture."
+  },
+  "errTooLarge": {
+    "message": "Ta strona jest zbyt wysoka nawet po podziale na 6 obrazów ($PX$ px). Spróbuj widocznego lub zaznaczonego obszaru.",
+    "description": "Capture error: page taller than one canvas. $PX$ is the height in device pixels.",
+    "placeholders": {
+      "px": {
+        "content": "$1",
+        "example": "35000"
+      }
+    }
+  },
+  "errNoRegion": {
+    "message": "Zapisany obszar nie mieści się na tym ekranie — najpierw zaznacz nowy.",
+    "description": "Capture error: repeat-last-region with no region that fits."
+  },
+  "errClipboard": {
+    "message": "Nie udało się skopiować zrzutu do schowka.",
+    "description": "Quick-action error: clipboard write failed."
+  },
+  "errSave": {
+    "message": "Nie udało się zapisać zrzutu na dysku.",
+    "description": "Quick-action error: disk save failed."
+  },
+  "errUnknown": {
+    "message": "Przechwytywanie nieoczekiwanie się nie powiodło.",
+    "description": "Capture error: unexpected failure."
+  }
+}

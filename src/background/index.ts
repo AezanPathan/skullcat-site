@@ -1,0 +1,1056 @@
+import {
+  openCaptureProgress,
+  closeCaptureProgress,
+  setCaptureProgress,
+  getCaptureProgress,
+  finishCaptureProgress,
+} from './capture-progress';
+import { downloadDataUrl } from '../shared/download';
+import { IS_FIREFOX } from '../shared/browser';
+/**
+ * OpenScreenShot background service worker.
+ *
+ * Coordinates capture requests from the popup (and keyboard commands) and runs
+ * them against the active tab using `activeTab` + `scripting` — no broad host
+ * permissions. In-page work (measurement, scrolling, canvas compositing) is done
+ * by injecting self-contained functions via `chrome.scripting.executeScript`;
+ * the service worker itself only orchestrates and captures viewport tiles with
+ * `chrome.tabs.captureVisibleTab`.
+ *
+ * After a capture completes, the image is stashed in storage, then delivered per
+ * the user's capture action: opened in the editor, copied to the clipboard, or
+ * downloaded directly.
+ */
+import type { CaptureMode, CaptureRequest, PopupMessage, TileSpec } from '../shared/types';
+import {
+  getLastRegion,
+  getSettings,
+  migrateExpressDefault,
+  onSettingsChanged,
+  openCapture,
+  setLastCapture,
+  setLastRegion,
+  setSettings,
+  setPendingCaptureError,
+} from '../shared/storage';
+import {
+  formatFilename,
+  isProtectedUrl,
+  menuIdToMode,
+  MENU_IDS,
+  MENU_REPEAT_ID,
+  normalizeCaptureAction,
+  normalizeCaptureDelay,
+} from '../shared/utils';
+import {
+  clampRegionRect,
+  computeScrollPositions,
+  MAX_CANVAS_HEIGHT_PX,
+  MAX_CAPTURE_PARTS,
+  splitHeight,
+} from '../shared/geometry';
+import { recordExportSuccess } from '../shared/rating';
+import {
+  cropTile,
+  getWindowViewport,
+  getMetrics,
+  hideFixedElements,
+  prepareCapture,
+  restoreCapture,
+  scrollToPosition,
+  stitchTiles,
+} from '../content/scroll-capture';
+import { updateCaptureOverlay } from '../content/capture-overlay';
+import { selectRegion } from '../content/region-select';
+import { selectElement } from '../content/element-select';
+import { copyImageToClipboard } from '../content/clipboard';
+import { restoreRecBadge } from '@/background/recording';
+
+const EDITOR_URL = chrome.runtime.getURL('src/editor/index.html');
+const POPUP_URL = 'src/popup/index.html';
+/**
+ * First-run page: a tall article that invites the first capture, hosted on the
+ * site rather than bundled. It has to be an ordinary https page — Chrome
+ * refuses script injection into a chrome-extension:// tab whatever the
+ * manifest asks for, so a bundled welcome page is the one page the capture it
+ * invites can never read. Carries the version and UI language only, same as
+ * UNINSTALL_URL; the page reads `hl` to send the visitor to their own locale.
+ */
+const WELCOME_URL = 'https://openscreenshot.app/welcome';
+/**
+ * Where an uninstall lands (Surface D of the rating funnel). Query carries
+ * the extension version and UI locale only — never a page URL, title, or
+ * capture.
+ */
+const UNINSTALL_URL = 'https://openscreenshot.app/uninstall';
+/** Icon context-menu checkbox that toggles express mode. */
+const MENU_EXPRESS_ID = 'oss-express';
+/** Page-menu and icon-menu items that open the settings pane in a tab. */
+const MENU_SETTINGS_ID = 'oss-settings';
+const MENU_ICON_SETTINGS_ID = 'oss-icon-settings';
+/**
+ * Icon context-menu capture items. With express mode hijacking the icon
+ * click, the icon's right-click menu is where the other modes stay one
+ * gesture away. Separate ids from MENU_IDS: a menu item cannot sit both
+ * under the page parent and on the action context.
+ */
+const ICON_MENU_IDS: Record<CaptureMode, string> = {
+  'full-page': 'oss-icon-full-page',
+  visible: 'oss-icon-visible',
+  region: 'oss-icon-region',
+  element: 'oss-icon-element',
+};
+
+/** Minimum gap between `captureVisibleTab` calls — Chrome throttles to ~2/sec. */
+const CAPTURE_THROTTLE_MS = 500;
+/** Time to let the page paint/composite after each scroll before capturing. */
+const PAINT_SETTLE_MS = 60;
+
+// A fresh install opens the welcome page — a tall article built to make the
+// first one-click capture look good. Updates open nothing. The express
+// migration runs before the menus so the checkbox reads the post-migration
+// value.
+chrome.runtime.onInstalled.addListener((details) => {
+  void migrateExpressDefault(details.reason).then(() => createContextMenus());
+  if (!IS_FIREFOX && details.reason === 'install') void chrome.tabs.create({ url: welcomeUrl() });
+});
+
+/** The welcome URL with the same two values the uninstall URL carries. */
+function welcomeUrl(): string {
+  const manifest = chrome.runtime.getManifest();
+  return `${WELCOME_URL}?v=${manifest.version}&hl=${chrome.i18n.getUILanguage()}`;
+}
+
+// Registered on every worker start so it survives service-worker restarts.
+// Version and locale only — see UNINSTALL_URL.
+if (!IS_FIREFOX)
+  void chrome.runtime.setUninstallURL(
+    `${UNINSTALL_URL}?v=${chrome.runtime.getManifest().version}&hl=${chrome.i18n.getUILanguage()}`,
+  );
+
+/** Contexts the capture menu appears in — everywhere on a page. */
+const MENU_CONTEXTS: NonNullable<chrome.contextMenus.CreateProperties['contexts']> = [
+  'page',
+  'frame',
+  'selection',
+  'link',
+  'image',
+  'video',
+  'audio',
+];
+
+/**
+ * (Re)create the right-click capture menu. Menus persist until update/reload.
+ *
+ * `onInstalled` can fire twice close together (a reload while a prior
+ * install/update event is still being handled), and two runs of this
+ * function racing was the cause of a "duplicate id oss-express" error users
+ * hit in the wild. `createContextMenusOnce` reads settings *before* clearing
+ * the menus so no `await` sits between `removeAll()` and the last `create()`
+ * — a competing run can no longer interleave partway through. This wrapper
+ * also makes two overlapping calls join a single in-flight run rather than
+ * racing at all. That guard is module state and does not survive a service
+ * worker restart, so it only protects overlap within one worker lifetime —
+ * the reordering above is what actually removes the race, and the swallowed
+ * `lastError` on the express `create()` below is the last-resort backstop.
+ *
+ * Exported only so `tests/unit/context-menus-race.test.ts` can drive it;
+ * nothing outside this module calls it.
+ */
+let createContextMenusPromise: Promise<void> | null = null;
+
+export async function createContextMenus(): Promise<void> {
+  if (!createContextMenusPromise) {
+    createContextMenusPromise = createContextMenusOnce().finally(() => {
+      createContextMenusPromise = null;
+    });
+  }
+  return createContextMenusPromise;
+}
+
+async function createContextMenusOnce(): Promise<void> {
+  const { expressMode } = await getSettings();
+  await chrome.contextMenus.removeAll();
+  chrome.contextMenus.create({
+    id: 'oss-parent',
+    title: 'OpenScreenShot',
+    contexts: MENU_CONTEXTS,
+  });
+  const titles: Record<CaptureMode, string> = {
+    'full-page': chrome.i18n.getMessage('modeFullPage'),
+    visible: chrome.i18n.getMessage('modeVisible'),
+    region: chrome.i18n.getMessage('modeRegion'),
+    element: chrome.i18n.getMessage('modeElement'),
+  };
+  for (const mode of ['full-page', 'visible', 'region', 'element'] as const) {
+    chrome.contextMenus.create({
+      id: MENU_IDS[mode],
+      parentId: 'oss-parent',
+      title: titles[mode],
+      contexts: MENU_CONTEXTS,
+    });
+    chrome.contextMenus.create({
+      id: ICON_MENU_IDS[mode],
+      title: titles[mode],
+      contexts: ['action'],
+    });
+  }
+  chrome.contextMenus.create({
+    id: MENU_SETTINGS_ID,
+    parentId: 'oss-parent',
+    title: chrome.i18n.getMessage('settingsTitle'),
+    contexts: MENU_CONTEXTS,
+  });
+  chrome.contextMenus.create({
+    id: MENU_ICON_SETTINGS_ID,
+    title: chrome.i18n.getMessage('settingsTitle'),
+    contexts: ['action'],
+  });
+  // Express lives on the icon's right-click menu: once it hijacks the icon
+  // click, this checkbox is the only remaining surface that can turn it off.
+  chrome.contextMenus.create(
+    {
+      id: MENU_EXPRESS_ID,
+      type: 'checkbox',
+      title: chrome.i18n.getMessage('expressLabel'),
+      contexts: ['action'],
+      checked: expressMode,
+    },
+    () => void chrome.runtime.lastError,
+  );
+  await ensureRepeatMenuItem();
+}
+
+/**
+ * Point the icon click at the popup or (in express mode) straight at a capture.
+ * `action.onClicked` only fires while no popup is bound, so the binding is the
+ * mode switch. Runs on every worker start and settings change; the menu update
+ * fails harmlessly before the checkbox exists (first run before onInstalled).
+ */
+async function syncExpressMode(): Promise<void> {
+  const { expressMode } = await getSettings();
+  await chrome.action.setPopup({ popup: expressMode ? '' : POPUP_URL });
+  chrome.contextMenus.update(MENU_EXPRESS_ID, { checked: expressMode }, () => {
+    void chrome.runtime.lastError;
+  });
+}
+
+void syncExpressMode();
+onSettingsChanged(() => void syncExpressMode());
+// The popup binding may revert to the manifest default when the browser
+// restarts; this listener guarantees the worker wakes then and re-syncs.
+chrome.runtime.onStartup.addListener(() => void syncExpressMode());
+
+// Express mode only: with no popup bound, the icon click grants `activeTab`
+// and lands here.
+//
+// The manifest declares no `default_popup`, so an unbound action is the state
+// Chrome starts in and `syncExpressMode` is the only thing that ever binds
+// one. That removes the express-mode leak (a manifest default could serve the
+// old mode picker for one click before the worker woke) but opens the mirror
+// case: a cold start where a non-express user clicks before `onStartup` has
+// re-bound the popup would capture instead of showing the picker. Re-reading
+// the setting here closes it — the click binds the popup and opens it rather
+// than capturing something nobody asked for.
+chrome.action.onClicked.addListener((tab) => {
+  void (async () => {
+    const { expressMode } = await getSettings();
+    if (!expressMode) {
+      await syncExpressMode();
+      // Chrome 127+. On older builds the binding above still lands, so the
+      // user's next click reaches the picker.
+      await chrome.action.openPopup?.().catch(() => {
+        /* no popup to open (unsupported, or no focused window) */
+      });
+      return;
+    }
+    if (tab?.id !== undefined && isProtectedUrl(tab.url)) {
+      await chrome.action.setPopup({ popup: `${POPUP_URL}?restricted=1` });
+      try {
+        await chrome.action.openPopup();
+        await syncExpressMode();
+      } catch {
+        // Older Chrome cannot open a popup programmatically. Leave it bound
+        // for the next click; the popup restores the preferred mode on mount.
+      }
+      return;
+    }
+    await handleCapture('full-page');
+  })().catch(onCaptureError);
+});
+
+/**
+ * Add the "repeat last region" item once a region has been stored. The create
+ * callback swallows the duplicate-id error on later calls.
+ */
+async function ensureRepeatMenuItem(): Promise<void> {
+  if (!(await getLastRegion())) return;
+  chrome.contextMenus.create(
+    {
+      id: MENU_REPEAT_ID,
+      parentId: 'oss-parent',
+      title: chrome.i18n.getMessage('repeatLastRegion'),
+      contexts: MENU_CONTEXTS,
+    },
+    () => void chrome.runtime.lastError,
+  );
+}
+
+// A context menu click grants `activeTab` just like opening the popup does.
+chrome.contextMenus.onClicked.addListener((info) => {
+  const id = String(info.menuItemId);
+  if (id === MENU_EXPRESS_ID) {
+    // Chrome already flipped the checkbox; persist the new state. The
+    // settings-change listener then rebinds the popup.
+    void setSettings({ expressMode: info.checked === true });
+    return;
+  }
+  if (id === MENU_REPEAT_ID) {
+    void handleCapture('region', true).catch(onCaptureError);
+    return;
+  }
+  if (id === MENU_SETTINGS_ID || id === MENU_ICON_SETTINGS_ID) {
+    void chrome.runtime.openOptionsPage();
+    return;
+  }
+  const iconMode = (Object.entries(ICON_MENU_IDS) as [CaptureMode, string][]).find(
+    ([, menuId]) => menuId === id,
+  )?.[0];
+  const mode = iconMode ?? menuIdToMode(id);
+  if (mode) void handleCapture(mode).catch(onCaptureError);
+});
+
+chrome.commands.onCommand.addListener((command) => {
+  const mode = commandToMode(command);
+  if (mode) void handleCapture(mode).catch(onCaptureError);
+});
+
+chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
+  if (
+    (message as { type?: string })?.type === 'RESTRICTED_POPUP_OPENED' ||
+    (message as { type?: string })?.type === 'CAPTURE_ERROR_POPUP_OPENED'
+  ) {
+    void syncExpressMode();
+    return false;
+  }
+  if ((message as { type?: string })?.type === 'GET_CAPTURE_PROGRESS') {
+    sendResponse(getCaptureProgress());
+    return false;
+  }
+  if ((message as { type?: string })?.type === 'CAPTURE_QUICK_ACTION') {
+    void handleCaptureQuickAction(message).then(sendResponse);
+    return true;
+  }
+  if (isCaptureRequest(message)) {
+    void handleCapture(message.mode, message.repeat === true).catch(onCaptureError);
+  }
+  return false; // synchronous: no async sendResponse
+});
+
+// A capture owns the page scroll state and overlay until its final cleanup.
+let captureActive = false;
+
+async function handleCapture(mode: CaptureMode, repeatRegion = false): Promise<void> {
+  if (captureActive) return;
+  captureActive = true;
+  try {
+    await closeCaptureProgress();
+    // Also dismiss a ready window that outlived a service-worker restart.
+    void chrome.runtime.sendMessage({ type: 'CAPTURE_STARTED' }).catch(() => {});
+    await runCapture(mode, repeatRegion);
+  } finally {
+    if (!getCaptureProgress()?.result) await closeCaptureProgress();
+    captureActive = false;
+  }
+}
+
+async function runCapture(mode: CaptureMode, repeatRegion: boolean): Promise<void> {
+  const tab = await getActiveTab();
+  if (!tab || tab.id == null) {
+    broadcast({
+      type: 'CAPTURE_ERROR',
+      code: 'unknown',
+      message: chrome.i18n.getMessage('errNoTab'),
+    });
+    return;
+  }
+  if (isProtectedUrl(tab.url)) {
+    broadcast({
+      type: 'CAPTURE_ERROR',
+      code: 'protected-page',
+      message: chrome.i18n.getMessage('errProtectedPage'),
+    });
+    return;
+  }
+  // Chrome refuses script injection on file:// pages until the user turns on
+  // "Allow access to file URLs", and the raw failure only says "Cannot access
+  // contents of the page". Firefox always answers false here, so skip it there.
+  if (
+    !IS_FIREFOX &&
+    tab.url?.startsWith('file:') &&
+    !(await chrome.extension.isAllowedFileSchemeAccess())
+  ) {
+    broadcast({
+      type: 'CAPTURE_ERROR',
+      code: 'file-access',
+      message: chrome.i18n.getMessage('errFileAccess'),
+    });
+    return;
+  }
+  const delaySeconds = normalizeCaptureDelay((await getSettings()).captureDelay);
+  if (delaySeconds > 0) {
+    if (countdownActive) return; // one countdown at a time — ignore extra requests
+    countdownActive = true;
+    try {
+      await runCountdown(delaySeconds);
+    } finally {
+      countdownActive = false;
+    }
+  }
+  switch (mode) {
+    case 'visible':
+      await captureVisible(tab);
+      return;
+    case 'full-page':
+      await captureFullPage(tab);
+      return;
+    case 'region':
+      await captureRegion(tab, repeatRegion);
+      return;
+    case 'element':
+      await captureElement(tab);
+      return;
+  }
+}
+
+let countdownActive = false;
+
+/**
+ * Tick the action badge down once per second, then hand the badge back to the
+ * recorder (which clears it when nothing is recording). Each `chrome.*` call
+ * resets the MV3 idle timer, so a ≤10s countdown can't kill the worker.
+ */
+async function runCountdown(seconds: number): Promise<void> {
+  await chrome.action.setBadgeBackgroundColor({ color: '#e8503a' });
+  await chrome.action.setBadgeTextColor({ color: '#ffffff' });
+  for (let s = seconds; s > 0; s--) {
+    await chrome.action.setBadgeText({ text: String(s) });
+    await delay(1000);
+  }
+  await restoreRecBadge();
+}
+
+async function getActiveTab(): Promise<chrome.tabs.Tab | null> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  return tab ?? null;
+}
+
+/**
+ * Inject a self-contained function into `tabId` and return its (awaited) result.
+ * Throws if the injection produces no result.
+ */
+async function execInTab<A extends unknown[], R>(
+  tabId: number,
+  func: (...args: A) => R,
+  args: A,
+): Promise<Awaited<R>> {
+  const results = await chrome.scripting.executeScript({ target: { tabId }, func, args });
+  const result = results?.[0]?.result;
+  if (result === undefined) throw new Error('executeScript returned no result');
+  return result as Awaited<R>;
+}
+
+/** Inject a fire-and-forget (void) function; its undefined result is ignored. */
+async function runInTab<A extends unknown[]>(
+  tabId: number,
+  func: (...args: A) => unknown,
+  args: A,
+): Promise<void> {
+  await chrome.scripting.executeScript({ target: { tabId }, func, args });
+}
+
+async function captureVisibleTabPng(
+  tabId: number,
+  windowId: number,
+  requireSourceTab = false,
+): Promise<string> {
+  // Fail closed if hiding fails; a progress card must never enter the image.
+  await runInTab(tabId, updateCaptureOverlay, ['hide']);
+  await delay(PAINT_SETTLE_MS);
+  if (requireSourceTab) {
+    const [active] = await chrome.tabs.query({ active: true, windowId });
+    if (active?.id !== tabId) throw new Error('The source tab is no longer active');
+  }
+  return chrome.tabs.captureVisibleTab(windowId, { format: 'png' });
+}
+
+async function captureVisible(tab: chrome.tabs.Tab): Promise<void> {
+  const tabId = tab.id as number;
+  const metrics = await execInTab(tabId, getWindowViewport, []);
+  const windowId = tab.windowId ?? chrome.windows.WINDOW_ID_CURRENT;
+  try {
+    const dataUrl = await captureVisibleTabPng(tabId, windowId);
+    await showCaptureProgress(tabId, null);
+    const width = Math.round(metrics.viewportWidth * metrics.devicePixelRatio);
+    const height = Math.round(metrics.viewportHeight * metrics.devicePixelRatio);
+    const delivered = await deliverCapture(
+      tabId,
+      dataUrl,
+      width,
+      height,
+      'visible',
+      tab.title ?? '',
+      tab.url ?? '',
+      windowId,
+    );
+    if (delivered) broadcast({ type: 'CAPTURE_COMPLETE', imageUrl: dataUrl, width, height });
+  } finally {
+    await removeCaptureProgress(tabId);
+  }
+}
+
+async function captureRegion(tab: chrome.tabs.Tab, repeat = false): Promise<void> {
+  const tabId = tab.id as number;
+  const metrics = await execInTab(tabId, getWindowViewport, []);
+  let rect;
+  if (repeat) {
+    const stored = await getLastRegion();
+    rect = stored && clampRegionRect(stored, metrics.viewportWidth, metrics.viewportHeight);
+    if (!rect) {
+      broadcast({
+        type: 'CAPTURE_ERROR',
+        code: 'no-region',
+        message: chrome.i18n.getMessage('errNoRegion'),
+      });
+      return;
+    }
+  } else {
+    rect = await execInTab(tabId, selectRegion, []);
+    if (!rect) return; // user pressed Esc — nothing to capture
+    await setLastRegion(rect);
+    await ensureRepeatMenuItem();
+  }
+  const windowId = tab.windowId ?? chrome.windows.WINDOW_ID_CURRENT;
+  try {
+    const tile = await captureVisibleTabPng(tabId, windowId);
+    await showCaptureProgress(tabId, null);
+    const dpr = metrics.devicePixelRatio;
+    const x = Math.round(rect.x * dpr);
+    const y = Math.round(rect.y * dpr);
+    const w = Math.round(rect.width * dpr);
+    const h = Math.round(rect.height * dpr);
+    const dataUrl = await execInTab(tabId, cropTile, [tile, x, y, w, h]);
+    const delivered = await deliverCapture(
+      tabId,
+      dataUrl,
+      w,
+      h,
+      'region',
+      tab.title ?? '',
+      tab.url ?? '',
+      windowId,
+    );
+    if (delivered) broadcast({ type: 'CAPTURE_COMPLETE', imageUrl: dataUrl, width: w, height: h });
+  } finally {
+    await removeCaptureProgress(tabId);
+  }
+}
+
+async function captureElement(tab: chrome.tabs.Tab): Promise<void> {
+  const tabId = tab.id as number;
+  const selection = await execInTab(tabId, selectElement, [
+    {
+      title: chrome.i18n.getMessage('elementPickerTitle'),
+      instructions: chrome.i18n.getMessage('elementPickerInstructions'),
+      empty: chrome.i18n.getMessage('elementPickerEmpty'),
+      clipped: chrome.i18n.getMessage('elementPickerClipped'),
+      capture: chrome.i18n.getMessage('elementPickerCapture'),
+      fullPage: chrome.i18n.getMessage('elementPickerFullPage'),
+      cancel: chrome.i18n.getMessage('elementPickerCancel'),
+      larger: chrome.i18n.getMessage('elementPickerLarger'),
+      smaller: chrome.i18n.getMessage('elementPickerSmaller'),
+    },
+  ]);
+  if (!selection) return;
+
+  // A picker can stay open while the user changes tabs. captureVisibleTab
+  // captures the window's active tab, not a tab id: never capture a different page.
+  const windowId = tab.windowId ?? chrome.windows.WINDOW_ID_CURRENT;
+  const [active] = await chrome.tabs.query({ active: true, windowId });
+  if (active?.id !== tabId) return;
+  if (selection.kind === 'full-page') {
+    await captureFullPage(tab);
+    return;
+  }
+
+  // Element rectangles are viewport-relative, independent of inner scroll panels.
+  // Read fresh dimensions: the user may resize or zoom while choosing.
+  const metrics = await execInTab(tabId, getWindowViewport, []);
+  const { rect } = selection;
+  if (
+    ![rect.x, rect.y, rect.width, rect.height, metrics.devicePixelRatio].every(Number.isFinite) ||
+    metrics.devicePixelRatio <= 0 ||
+    rect.width < 2 ||
+    rect.height < 2 ||
+    rect.x < 0 ||
+    rect.y < 0 ||
+    rect.x + rect.width > metrics.viewportWidth ||
+    rect.y + rect.height > metrics.viewportHeight
+  ) {
+    broadcast({
+      type: 'CAPTURE_ERROR',
+      code: 'element-not-visible',
+      message: chrome.i18n.getMessage('elementPickerClipped'),
+    });
+    return;
+  }
+
+  try {
+    const tile = await captureVisibleTabPng(tabId, windowId, true);
+    await showCaptureProgress(tabId, null);
+    const dpr = metrics.devicePixelRatio;
+    const x = Math.round(rect.x * dpr);
+    const y = Math.round(rect.y * dpr);
+    const width = Math.round((rect.x + rect.width) * dpr) - x;
+    const height = Math.round((rect.y + rect.height) * dpr) - y;
+    const dataUrl = await execInTab(tabId, cropTile, [tile, x, y, width, height]);
+    const delivered = await deliverCapture(
+      tabId,
+      dataUrl,
+      width,
+      height,
+      'element',
+      tab.title ?? '',
+      tab.url ?? '',
+      windowId,
+    );
+    if (delivered) broadcast({ type: 'CAPTURE_COMPLETE', imageUrl: dataUrl, width, height });
+  } finally {
+    await removeCaptureProgress(tabId);
+  }
+}
+
+async function captureFullPage(tab: chrome.tabs.Tab): Promise<void> {
+  const tabId = tab.id as number;
+  const metrics = await execInTab(tabId, getMetrics, [true]);
+  if (metrics.viewportHeight <= 0 || metrics.scrollHeight <= 0) {
+    await runInTab(tabId, restoreCapture, []);
+    broadcast({
+      type: 'CAPTURE_ERROR',
+      code: 'blank-page',
+      message: chrome.i18n.getMessage('errBlankPage'),
+    });
+    return;
+  }
+  const dpr = metrics.devicePixelRatio;
+  const canvasHeight = Math.round(metrics.scrollHeight * dpr);
+  // One canvas cannot pass MAX_CANVAS_HEIGHT_PX, so a taller page becomes several images.
+  const parts = splitHeight(canvasHeight, MAX_CANVAS_HEIGHT_PX);
+  if (parts.length > MAX_CAPTURE_PARTS) {
+    await runInTab(tabId, restoreCapture, []);
+    broadcast({
+      type: 'CAPTURE_ERROR',
+      code: 'too-large',
+      message: chrome.i18n.getMessage('errTooLarge', String(canvasHeight)),
+    });
+    return;
+  }
+
+  const positions = computeScrollPositions(metrics.scrollHeight, metrics.viewportHeight);
+  const windowId = tab.windowId ?? chrome.windows.WINDOW_ID_CURRENT;
+  // Crop every tile to the content viewport, excluding scrollbar gutters.
+  // Inner scrollers also exclude their border and surrounding page.
+  const crop = metrics.container
+    ? {
+        x: Math.round(metrics.container.x * dpr),
+        y: Math.round(metrics.container.y * dpr),
+        w: Math.round(metrics.container.width * dpr),
+        h: Math.round(metrics.container.height * dpr),
+      }
+    : {
+        x: Math.round((metrics.viewportLeft ?? 0) * dpr),
+        y: 0,
+        w: Math.round(metrics.viewportWidth * dpr),
+        h: Math.round(metrics.viewportHeight * dpr),
+      };
+  const canvasWidth = crop.w;
+
+  await openCaptureProgress(windowId);
+  try {
+    let tiles: TileSpec[] = [];
+    const captureIds: string[] = [];
+    let stitched = 0;
+    let firstPartUrl = '';
+    // Stitch and store each part as soon as the tiles reach its bottom, then
+    // drop the tiles above the next part: memory holds one part, not the page.
+    const flushParts = async (coveredBottom: number): Promise<void> => {
+      while (stitched < parts.length) {
+        const part = parts[stitched];
+        if (part.top + part.height > coveredBottom) return;
+        const partTiles = tiles
+          .filter((t) => t.y < part.top + part.height && t.y + crop.h > part.top)
+          .map((t) => ({ dataUrl: t.dataUrl, y: t.y - part.top }));
+        const dataUrl = await execInTab(tabId, stitchTiles, [
+          partTiles,
+          canvasWidth,
+          part.height,
+          crop,
+        ]);
+        if (stitched === 0) firstPartUrl = dataUrl;
+        if (parts.length > 1) {
+          captureIds.push(
+            await setLastCapture(
+              {
+                dataUrl,
+                width: canvasWidth,
+                height: part.height,
+                mode: 'full-page',
+                title: tab.title ?? '',
+                url: tab.url ?? '',
+                capturedAt: Date.now(),
+              },
+              stitched + 1,
+            ),
+          );
+        }
+        stitched++;
+        const next = parts[stitched];
+        if (next) tiles = tiles.filter((t) => t.y + crop.h > next.top);
+      }
+    };
+    // Disable smooth scrolling (but keep fixed elements visible) for the first tile.
+    try {
+      await runInTab(tabId, prepareCapture, []);
+      await reportProgress(0, positions.length);
+      // Tile 0: capture at the top with fixed elements visible so a fixed header
+      // appears once at the top of the final image (instead of being omitted).
+      {
+        await execInTab(tabId, scrollToPosition, [positions[0]]);
+        const first = await captureVisibleTabPng(tabId, windowId);
+        tiles.push({ dataUrl: first, y: 0 });
+        await reportProgress(1, positions.length);
+      }
+      // Remaining tiles: hide fixed elements so they don't duplicate.
+      if (positions.length > 1) {
+        await runInTab(tabId, hideFixedElements, []);
+        for (let i = 1; i < positions.length; i++) {
+          await delay(CAPTURE_THROTTLE_MS);
+          const { scrollY } = await execInTab(tabId, scrollToPosition, [positions[i]]);
+          const dataUrl = await captureVisibleTabPng(tabId, windowId);
+          const y = Math.round(scrollY * dpr);
+          tiles.push({ dataUrl, y });
+          await reportProgress(i + 1, positions.length);
+          if (parts.length > 1) await flushParts(y + crop.h);
+        }
+      }
+    } finally {
+      await runInTab(tabId, restoreCapture, []);
+    }
+
+    setCaptureProgress(null);
+    // Rounding can leave the last tile a pixel short of the page bottom, so the
+    // last part (and a page that fits one image) stitches here.
+    await flushParts(Infinity);
+    const delivered =
+      parts.length > 1
+        ? await deliverCaptureParts(captureIds, windowId)
+        : await deliverCapture(
+            tabId,
+            firstPartUrl,
+            canvasWidth,
+            canvasHeight,
+            'full-page',
+            tab.title ?? '',
+            tab.url ?? '',
+            windowId,
+          );
+    if (delivered) {
+      broadcast({
+        type: 'CAPTURE_COMPLETE',
+        imageUrl: firstPartUrl,
+        width: canvasWidth,
+        height: parts[0].height,
+      });
+    }
+  } finally {
+    await removeCaptureProgress(tabId);
+  }
+}
+
+/** Progress stays outside captured pixels: the popup and toolbar badge. */
+async function reportProgress(done: number, total: number): Promise<void> {
+  const percent = Math.round((done / total) * 100);
+  setCaptureProgress(percent);
+  broadcast({ type: 'CAPTURE_PROGRESS', percent });
+  if (total < 2) return;
+  await chrome.action.setBadgeBackgroundColor({ color: '#1967d2' });
+  await chrome.action.setBadgeTextColor({ color: '#ffffff' });
+  await chrome.action.setBadgeText({ text: `${percent}%` });
+}
+
+async function showCaptureProgress(tabId: number, percent: number | null): Promise<void> {
+  await runInTab(tabId, updateCaptureOverlay, [
+    'show',
+    percent,
+    chrome.i18n.getMessage(percent === null ? 'captureOverlayFinishing' : 'captureOverlayTitle'),
+    chrome.i18n.getMessage('captureOverlayDetail'),
+  ]);
+}
+
+async function removeCaptureProgress(tabId: number): Promise<void> {
+  // Navigation/tab closure destroys the DOM itself; cleanup must not replace
+  // the original error or turn an already delivered capture into a failure.
+  await runInTab(tabId, updateCaptureOverlay, ['remove']).catch(() => undefined);
+}
+
+/**
+ * Deliver a finished capture the way the user asked for. Every path stashes the
+ * capture first, so the popup's "Reopen last" link still works after a quick
+ * capture. Settings are read here rather than passed down: a full-page capture
+ * can take seconds, and the newest value is the one the user meant.
+ *
+ * Returns whether delivery actually happened — callers broadcast `CAPTURE_COMPLETE`
+ * only on `true`, so a failed clipboard copy doesn't chase its own `CAPTURE_ERROR`
+ * with a completion message (the popup closes itself on `CAPTURE_COMPLETE`).
+ */
+async function deliverCapture(
+  tabId: number,
+  dataUrl: string,
+  width: number,
+  height: number,
+  mode: CaptureMode,
+  title: string,
+  url: string,
+  windowId: number,
+): Promise<boolean> {
+  const captureId = await setLastCapture({
+    dataUrl,
+    width,
+    height,
+    mode,
+    title,
+    url,
+    capturedAt: Date.now(),
+  });
+  const settings = await getSettings();
+  const action = normalizeCaptureAction(settings.captureAction);
+
+  if (action === 'editor') {
+    if (!(await finishCaptureProgress('editor', windowId, captureId))) {
+      await chrome.tabs.create({ url: EDITOR_URL, windowId });
+    }
+    // The editor tab is the confirmation, so any progress badge left by a
+    // full-page stitch hands the badge back here. The clipboard and download
+    // branches below end on their own tick instead.
+    await restoreRecBadge();
+    return true;
+  }
+
+  if (action === 'clipboard') {
+    // Clipboard writes run in the source document and require that window's focus.
+    if (getCaptureProgress()) {
+      await chrome.windows.update(windowId, { focused: true }).catch(() => {});
+    }
+    const copied = await execInTab(tabId, copyImageToClipboard, [dataUrl]);
+    if (!copied) {
+      broadcast({
+        type: 'CAPTURE_ERROR',
+        code: 'quick-action',
+        message: chrome.i18n.getMessage('errClipboard'),
+      });
+      return false;
+    }
+    await finishCaptureProgress('clipboard', windowId, captureId);
+    void recordExportSuccess();
+    void flashDoneBadge();
+    return true;
+  }
+
+  // Quick save writes PNG: the capture already is one, and the export dialog
+  // owns the format choice.
+  const base = formatFilename(settings.filenameTemplate, { title, url, width, height });
+  try {
+    await downloadDataUrl(dataUrl, `${base}.png`);
+  } catch {
+    broadcast({
+      type: 'CAPTURE_ERROR',
+      code: 'quick-action',
+      message: chrome.i18n.getMessage('errSave'),
+    });
+    return false;
+  }
+  await finishCaptureProgress('download', windowId, captureId);
+  void recordExportSuccess();
+  void flashDoneBadge();
+  return true;
+}
+
+/**
+ * Deliver a full-page capture split into several stored parts. The progress
+ * window's ready state and its quick actions hold one capture, so it closes.
+ * The clipboard holds one image, so that action opens every part in the
+ * editor, one tab per part.
+ */
+async function deliverCaptureParts(captureIds: string[], windowId: number): Promise<boolean> {
+  await closeCaptureProgress();
+  const settings = await getSettings();
+  if (normalizeCaptureAction(settings.captureAction) === 'download') {
+    try {
+      for (const [i, id] of captureIds.entries()) {
+        const capture = await openCapture(id);
+        if (!capture) throw new Error('capture part missing');
+        const base = formatFilename(settings.filenameTemplate, capture);
+        await downloadDataUrl(capture.dataUrl, `${base}_part${i + 1}of${captureIds.length}.png`);
+      }
+    } catch {
+      broadcast({
+        type: 'CAPTURE_ERROR',
+        code: 'quick-action',
+        message: chrome.i18n.getMessage('errSave'),
+      });
+      return false;
+    }
+    void recordExportSuccess();
+    void flashDoneBadge();
+    return true;
+  }
+  for (const [i, id] of captureIds.entries()) {
+    await chrome.tabs.create({ url: `${EDITOR_URL}?capture=${id}`, windowId, active: i === 0 });
+  }
+  await restoreRecBadge();
+  return true;
+}
+
+/**
+ * Quick actions from the capture progress window act on an already-stashed
+ * capture, so they work without the editor. Only the PNG download runs here:
+ * the clipboard write needs a focused page (the progress window does its
+ * own), and PDF export stays in the editor.
+ */
+async function handleCaptureQuickAction(message: unknown): Promise<{ ok: boolean }> {
+  const { action, captureId } = (message ?? {}) as { action?: string; captureId?: string };
+  if (action !== 'png' || !captureId) return { ok: false };
+  try {
+    const capture = await openCapture(captureId);
+    if (!capture) return { ok: false };
+    const settings = await getSettings();
+    const base = formatFilename(settings.filenameTemplate, {
+      title: capture.title,
+      url: capture.url,
+      width: capture.width,
+      height: capture.height,
+    });
+    await downloadDataUrl(capture.dataUrl, `${base}.png`);
+    void recordExportSuccess();
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
+function commandToMode(command: string): CaptureMode | null {
+  switch (command) {
+    case 'capture-full-page':
+      return 'full-page';
+    case 'capture-visible':
+      return 'visible';
+    case 'capture-region':
+      return 'region';
+    case 'capture-element':
+      return 'element';
+    default:
+      return null;
+  }
+}
+
+function onCaptureError(err: unknown): void {
+  console.error('[OpenScreenShot] capture failed', err);
+  broadcast({
+    type: 'CAPTURE_ERROR',
+    code: 'unknown',
+    message: chrome.i18n.getMessage('errUnknown'),
+    detail: err instanceof Error ? err.message : String(err),
+  });
+}
+
+function broadcast(msg: PopupMessage): void {
+  if (msg.type === 'CAPTURE_ERROR') {
+    // Keep the machine-readable failure visible in the service-worker console.
+    // These expected capture failures do not pass through onCaptureError().
+    console.warn('[OpenScreenShot] capture error', msg.code, msg.message);
+    void getActiveTab()
+      .then(async (tab) => {
+        await setPendingCaptureError(msg, tab ?? undefined).catch(() => {});
+        await showCaptureError(msg.message);
+      })
+      .catch(() => {
+        // Session storage is best effort; the badge still identifies a failure.
+      });
+    void flashErrorBadge(msg.message);
+  }
+  // The popup may already be closed (e.g. region mode); ignore delivery failures.
+  void chrome.runtime.sendMessage(msg).catch(() => {
+    /* popup not listening */
+  });
+}
+
+/** Errors must remain readable even when capture started without an open popup. */
+async function showCaptureError(message: string): Promise<void> {
+  try {
+    // Carry the message in the URL: broadcasting before a popup mounts loses it.
+    await chrome.action.setPopup({
+      popup: `${POPUP_URL}?captureError=${encodeURIComponent(message)}`,
+    });
+    await chrome.action.openPopup();
+    await syncExpressMode();
+  } catch {
+    // Leave the error bound for the next click on browsers that cannot open it.
+    // The popup restores the user's preferred binding after it mounts.
+  }
+}
+
+/** How long an error badge and its tooltip stay up before the badge is handed back. */
+const ERROR_BADGE_MS = 6000;
+
+/**
+ * A bare '!' says something went wrong and nothing about what. Express mode
+ * has no popup to read the reason in, and the commonest express failure — a
+ * chrome:// or Web Store tab that cannot be captured — is one users otherwise
+ * repeat. The reason goes on the action's tooltip for as long as the badge
+ * stands; `setTitle('')` then puts the manifest title back.
+ */
+async function flashErrorBadge(message: string): Promise<void> {
+  await chrome.action.setBadgeBackgroundColor({ color: '#e8503a' });
+  await chrome.action.setBadgeTextColor({ color: '#ffffff' });
+  await chrome.action.setBadgeText({ text: '!' });
+  // Read the title back rather than restoring '': an empty title is its own
+  // state, and Chrome answers it with the extension's (localized) name instead
+  // of the manifest's default_title. Put back exactly what was there.
+  const previousTitle = message ? await chrome.action.getTitle({}) : null;
+  if (message) await chrome.action.setTitle({ title: message });
+  await delay(ERROR_BADGE_MS);
+  if (previousTitle !== null) await chrome.action.setTitle({ title: previousTitle });
+  await restoreRecBadge();
+}
+
+/** A quick capture opens no tab, so the badge is the only place to report success. */
+async function flashDoneBadge(): Promise<void> {
+  await chrome.action.setBadgeBackgroundColor({ color: '#34c759' });
+  await chrome.action.setBadgeTextColor({ color: '#ffffff' });
+  await chrome.action.setBadgeText({ text: '✓' });
+  await delay(1200);
+  await restoreRecBadge();
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isCaptureRequest(m: unknown): m is CaptureRequest {
+  return (
+    !!m &&
+    typeof m === 'object' &&
+    (m as { type?: string }).type === 'CAPTURE_REQUEST' &&
+    'mode' in m
+  );
+}

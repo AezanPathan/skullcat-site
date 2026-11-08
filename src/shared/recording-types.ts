@@ -1,0 +1,257 @@
+/** Shared shapes for the screen recorder: DB rows, cursor log, message protocol. */
+
+export interface RecordingSettings {
+  mic: boolean;
+  tabAudio: boolean;
+  webcam: boolean;
+  ripple: boolean;
+}
+
+export const DEFAULT_RECORDING_SETTINGS: RecordingSettings = {
+  mic: false,
+  tabAudio: true,
+  webcam: false,
+  ripple: true,
+};
+
+/**
+ * 'failed' is a start that never reached the engine: the row is kept, with no
+ * segments, so the Recorder page can show that the attempt happened rather
+ * than deleting every trace of it. `findRecoverableSessions` deliberately
+ * does not offer one — there is nothing in it to recover.
+ */
+export type SessionStatus = 'recording' | 'complete' | 'failed';
+
+export interface RecordingSession {
+  id: string;
+  createdAt: number;
+  status: SessionStatus;
+  settings: RecordingSettings;
+  segmentIds: string[];
+  /** Recorder editor state; `src/recorder/recorder-draft.ts` owns the shape. */
+  editorState?: unknown;
+}
+
+export interface SegmentViewport {
+  w: number;
+  h: number;
+  dpr: number;
+}
+
+/**
+ * The part of the tab a recording shows, normalized 0..1 against the
+ * viewport. The tab is always captured whole; the editor crops to this.
+ */
+export interface RecordingArea {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export const FULL_AREA: RecordingArea = { x: 0, y: 0, w: 1, h: 1 };
+
+/** Smallest side an area may have, as a fraction of the viewport. */
+export const MIN_AREA_SIDE = 0.05;
+
+/**
+ * A usable area from anything: clamped inside the viewport, and the whole
+ * tab when the value is malformed or smaller than {@link MIN_AREA_SIDE}.
+ * It arrives from a page message and from stored rows, so neither is trusted.
+ */
+export function normalizeArea(value: unknown): RecordingArea {
+  if (!value || typeof value !== 'object') return FULL_AREA;
+  const { x, y, w, h } = value as Partial<RecordingArea>;
+  if (![x, y, w, h].every((n) => typeof n === 'number' && Number.isFinite(n))) return FULL_AREA;
+  // Each side loses only what lies outside the viewport, so an area already
+  // inside it comes back with exactly the numbers it went in with.
+  const side = (start: number, size: number) => {
+    const from = Math.min(1, Math.max(0, start));
+    return { from, size: Math.min(size - (from - start), 1 - from) };
+  };
+  const across = side(x as number, w as number);
+  const down = side(y as number, h as number);
+  if (across.size < MIN_AREA_SIDE || down.size < MIN_AREA_SIDE) return FULL_AREA;
+  return { x: across.from, y: down.from, w: across.size, h: down.size };
+}
+
+export interface RecordingSegment {
+  id: string;
+  sessionId: string;
+  index: number;
+  startedAt: number;
+  /** Recorded ms, pauses excluded. 0 until finalized (crash → recovery estimates). */
+  duration: number;
+  viewport: SegmentViewport;
+  hasWebcam: boolean;
+  /** Absent on segments recorded before area selection existed: the whole tab. */
+  area?: RecordingArea;
+}
+
+export type ChunkKind = 'tab' | 'webcam';
+
+/** `t` is ms since segment start, pauses excluded. x/y/w/h are CSS px. */
+export type CursorEvent =
+  | { kind: 'move'; t: number; x: number; y: number }
+  | { kind: 'click'; t: number; x: number; y: number }
+  | { kind: 'resize'; t: number; w: number; h: number; dpr: number }
+  | { kind: 'overlay-lost'; t: number }
+  | { kind: 'overlay-healed'; t: number };
+
+// --- Gesture surfaces (popup / control tab / command) → worker -------------
+
+export type RecMessage =
+  /**
+   * The popup's Record click: open the control tab for `tabId`. Sent from
+   * the click, while the toolbar invocation still grants the worker a
+   * screenshot of that tab.
+   */
+  | { type: 'REC_OPEN_CONTROL'; tabId: number; continueSessionId?: string }
+  /** The control tab's Start: record `tabId`, cropped to `area` in the editor. */
+  | {
+      type: 'REC_START';
+      settings: RecordingSettings;
+      tabId: number;
+      area?: RecordingArea;
+      continueSessionId?: string;
+    }
+  | { type: 'REC_STOP' }
+  | { type: 'REC_PAUSE' }
+  | { type: 'REC_RESUME' }
+  | { type: 'REC_CANCEL' }
+  | { type: 'REC_QUERY' };
+
+/** Session key for the tab the control page is about to record. */
+export const CONTROL_TARGET_KEY = 'openscreenshot:control-target';
+
+/** What the control page shows about its target before the recording starts. */
+export interface ControlTarget {
+  tabId: number;
+  windowId: number;
+  title: string;
+  url: string;
+  favIconUrl?: string;
+  /** A JPEG data URL of the tab at the Record click, or null if Chrome refused it. */
+  shot: string | null;
+  continueSessionId?: string;
+}
+
+/** REC_QUERY reply. */
+export interface RecState {
+  active: boolean;
+  paused: boolean;
+  sessionId?: string;
+  /** Elapsed recorded ms at reply time, pauses excluded. 0 until anchored. */
+  elapsedMs?: number;
+  /**
+   * Whether the engine has reported that the recorders actually began. The
+   * clock has no zero before that — the run is still opening streams — so a
+   * surface that shows elapsed has to show that it is starting instead of a
+   * number it would have to take back.
+   */
+  anchored?: boolean;
+  settings?: RecordingSettings;
+  overlayLost?: boolean;
+  recoverableSessionId?: string;
+  /** The tab being recorded. */
+  tabId?: number;
+  /** Media chunks are failing to reach IndexedDB. */
+  writeFailed?: boolean;
+  /** A requested camera was declined or unavailable; the run records without it. */
+  camDenied?: boolean;
+}
+
+// --- Worker → offscreen document (target discriminates broadcast) ----------
+
+export type OffscreenMessage =
+  | {
+      type: 'OFFSCREEN_START';
+      target: 'offscreen';
+      streamId: string;
+      sessionId: string;
+      segmentId: string;
+      settings: RecordingSettings;
+    }
+  | { type: 'OFFSCREEN_STOP'; target: 'offscreen' }
+  | { type: 'OFFSCREEN_PAUSE'; target: 'offscreen' }
+  | { type: 'OFFSCREEN_RESUME'; target: 'offscreen' }
+  | { type: 'OFFSCREEN_CANCEL'; target: 'offscreen' };
+
+// --- Offscreen document → worker -------------------------------------------
+
+/** What the engine's own `getUserMedia` actually returned, track by track. */
+export interface CapturedTracks {
+  mic: boolean;
+  webcam: boolean;
+}
+
+export type EngineMessage =
+  /** `tracks` is absent only from an engine older than this message shape. */
+  | { type: 'ENGINE_STARTED'; sessionId: string; tracks?: CapturedTracks }
+  /**
+   * A write to IndexedDB rejected. The recording keeps going — what is already
+   * written is real and stopping would throw it away — but the result is now
+   * poorer than the clock says, so the user has to be told.
+   *
+   * `kind` separates the two costs, because they are not the same message:
+   * 'media' loses video or audio the user believes they are recording, and
+   * 'events' loses only the cursor track, so zoom and click effects go missing
+   * from an otherwise intact file. Sent once per kind per run.
+   *
+   * Optional for the same reason `tracks` above is: `isEngineMessage` is a
+   * prefix check, not a validator, so an engine older than this shape sends
+   * no kind at all. Absent reads as 'media' at the handler — the graver of
+   * the two, because reporting a lost recording as a lost cursor track is the
+   * one direction of that mistake that costs the user data.
+   */
+  | { type: 'ENGINE_WRITE_FAILED'; sessionId: string; kind?: 'media' | 'events' }
+  | { type: 'ENGINE_STOPPED'; sessionId: string; canceled: boolean }
+  | { type: 'ENGINE_ERROR'; sessionId: string; message: string }
+  | { type: 'OVERLAY_LOST'; sessionId: string }
+  | { type: 'OVERLAY_HEALED'; sessionId: string };
+
+// --- Content overlay → offscreen document ----------------------------------
+
+export interface CursorBatch {
+  type: 'CURSOR_BATCH';
+  target: 'offscreen';
+  segmentId: string;
+  seq: number;
+  events: CursorEvent[];
+}
+
+/**
+ * Fold what the engine really captured back into the stored settings. A
+ * declined device never fails the start, so the settings the user asked for
+ * can outrun the tracks that exist — the control tab and the popup read
+ * these settings, so they would keep claiming a track nothing is recording.
+ * Correction is one-way: this can only drop a track, never add one.
+ */
+export function applyCapturedTracks(
+  settings: RecordingSettings,
+  tracks: CapturedTracks | undefined,
+): RecordingSettings {
+  if (!tracks) return settings;
+  return {
+    ...settings,
+    mic: settings.mic && tracks.mic,
+    webcam: settings.webcam && tracks.webcam,
+  };
+}
+
+export function isRecMessage(m: unknown): m is RecMessage {
+  return (
+    !!m &&
+    typeof m === 'object' &&
+    typeof (m as { type?: unknown }).type === 'string' &&
+    (m as { type: string }).type.startsWith('REC_')
+  );
+}
+
+export function isEngineMessage(m: unknown): m is EngineMessage {
+  const t = (m as { type?: unknown } | null)?.type;
+  return (
+    typeof t === 'string' &&
+    (t.startsWith('ENGINE_') || t === 'OVERLAY_LOST' || t === 'OVERLAY_HEALED')
+  );
+}

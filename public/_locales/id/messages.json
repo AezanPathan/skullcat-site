@@ -1,0 +1,212 @@
+{
+  "extName": {
+    "message": "Screenshot Halaman Penuh & Perekam Layar - OpenScreenShot",
+    "description": "Extension name shown in Chrome UI."
+  },
+  "extNameFirefox": {
+    "message": "Screenshot Halaman Penuh - OpenScreenShot",
+    "description": "Extension name in the Firefox build, which takes screenshots only and has no recorder."
+  },
+  "extDesc": {
+    "message": "Screenshot halaman penuh sekali klik. Open source, 100% privat, tanpa akun, tanpa unggahan.",
+    "description": "Extension description shown in the Chrome Web Store and extensions page."
+  },
+  "modeFullPage": {
+    "message": "Halaman penuh",
+    "description": "Capture mode: capture the entire scrolling page."
+  },
+  "modeFullPageSub": {
+    "message": "Tangkap seluruh halaman yang bergulir",
+    "description": "Subtitle for the Full Page capture mode."
+  },
+  "modeVisible": {
+    "message": "Area terlihat",
+    "description": "Capture mode: capture what is currently visible."
+  },
+  "modeVisibleSub": {
+    "message": "Yang Anda lihat sekarang",
+    "description": "Subtitle for the Visible Area capture mode."
+  },
+  "modeRegion": {
+    "message": "Area pilihan",
+    "description": "Capture mode: capture a user-dragged region."
+  },
+  "modeRegionSub": {
+    "message": "Klik dan seret untuk memilih",
+    "description": "Subtitle for the Selected Region capture mode."
+  },
+  "modeElement": {
+    "message": "Tangkap elemen",
+    "description": "Capture mode: capture a single page element."
+  },
+  "modeElementSub": {
+    "message": "Pilih kartu, grafik, gambar, atau tabel",
+    "description": "Subtitle for the element capture mode."
+  },
+  "elementPickerTitle": {
+    "message": "Tangkap elemen",
+    "description": "Element picker: heading."
+  },
+  "elementPickerInstructions": {
+    "message": "Arahkan kursor untuk memilih · ↑ Lebih besar · ↓ Lebih kecil · ←/→ Elemen lain · Enter Tangkap · Esc Batal",
+    "description": "Element picker: pointer and keyboard instructions."
+  },
+  "elementPickerEmpty": {
+    "message": "Arahkan kursor ke elemen, atau gunakan ←/→ untuk memilih.",
+    "description": "Element picker: hint when no element is selected."
+  },
+  "elementPickerClipped": {
+    "message": "Elemen ini belum terlihat sepenuhnya. Gulir hingga terlihat atau tangkap halaman penuh.",
+    "description": "Element picker: warning when the selected element is not fully visible."
+  },
+  "elementPickerCapture": {
+    "message": "Tangkap",
+    "description": "Element picker: button to capture the selected element."
+  },
+  "elementPickerFullPage": {
+    "message": "Tangkap halaman penuh",
+    "description": "Element picker: button to capture the full page instead."
+  },
+  "elementPickerCancel": {
+    "message": "Batal",
+    "description": "Element picker: button to cancel selection."
+  },
+  "elementPickerLarger": {
+    "message": "Area lebih besar",
+    "description": "Element picker: button to select a larger containing element."
+  },
+  "elementPickerSmaller": {
+    "message": "Area lebih kecil",
+    "description": "Element picker: button to select a smaller nested element."
+  },
+  "settingsTitle": {
+    "message": "Setelan",
+    "description": "Settings panel heading."
+  },
+  "repeatLastRegion": {
+    "message": "Ulangi area terakhir",
+    "description": "Footer link and context menu item that re-captures the previous region selection."
+  },
+  "expressLabel": {
+    "message": "Mode Express sekali klik",
+    "description": "Name of the one-click express setting: the Settings card, the editor status bar switch, and the icon context-menu checkbox."
+  },
+  "expressHint": {
+    "message": "Matikan untuk memilih Halaman penuh, Area terlihat, atau Area pilihan setiap kali.",
+    "description": "Hint shown under the express row when express mode is on."
+  },
+  "editorExpressOn": {
+    "message": "Mode Express sekali klik aktif.",
+    "description": "Editor status bar, bold: express mode is on. settingsExpressHint follows it."
+  },
+  "editorExpressOff": {
+    "message": "Mode Express sekali klik nonaktif.",
+    "description": "Editor status bar, bold: express mode is off."
+  },
+  "editorExpressOffHint": {
+    "message": "Aktifkan untuk melewati konfirmasi sebelum tangkapan.",
+    "description": "Editor status bar, after editorExpressOff: asks the user to turn express mode on."
+  },
+  "settingsExpressHint": {
+    "message": "Sekali klik pada ikon bilah alat menangkap halaman penuh. Nonaktifkan untuk memilih mode setiap kali.",
+    "description": "Explains one-click express mode under its switch in Settings, and in the editor status bar when it is on."
+  },
+  "expressMigratedNote": {
+    "message": "Klik ikon kini menangkap halaman penuh. Klik kanan untuk mode lain.",
+    "description": "One-time editor note after the update that made a toolbar click capture the full page."
+  },
+  "setupPinTitle": {
+    "message": "Sematkan OpenScreenShot",
+    "description": "Popup: nudge to pin the extension, shown while it is not on the toolbar."
+  },
+  "setupPinSub": {
+    "message": "Klik 🧩 di atas, lalu 📌 di samping OpenScreenShot.",
+    "description": "Popup: how to pin — the puzzle menu sits directly above the popup."
+  },
+  "editorCopyIdle": {
+    "message": "Salin",
+    "description": "Editor topbar: the Copy button’s resting label."
+  },
+  "editorMarkup": {
+    "message": "Edit",
+    "description": "Editor topbar (View mode): button that opens the Markup chrome."
+  },
+  "editorFitHint": {
+    "message": "Disesuaikan dengan jendela. Gulir atau perbesar untuk melihat ukuran penuh.",
+    "description": "Editor: one-time note when a capture opens fitted well below actual size."
+  },
+  "editorSaveImage": {
+    "message": "Simpan gambar",
+    "description": "Editor topbar: label on the primary Save image button (opens the export dialog)."
+  },
+  "editorPdfLabel": {
+    "message": "PDF",
+    "description": "Editor topbar: label on the one-click PDF export button."
+  },
+  "editorRateLabel": {
+    "message": "Beri nilai",
+    "description": "Editor topbar: label on the always-visible Rate star."
+  },
+  "editorRateTooltip": {
+    "message": "30 detik. Begitulah orang lain menemukan alat screenshot yang privat.",
+    "description": "Editor topbar: tooltip on the Rate star."
+  },
+  "ratePromptHeadline": {
+    "message": "Apakah ini menghemat waktu Anda?",
+    "description": "One-time post-export rate prompt: headline."
+  },
+  "ratePromptBody": {
+    "message": "Penilaian singkat di Chrome Web Store adalah cara utama alat privat ditemukan. Hanya 30 detik.",
+    "description": "One-time post-export rate prompt: body."
+  },
+  "ratePromptRate": {
+    "message": "Beri nilai di Chrome Web Store",
+    "description": "One-time post-export rate prompt: button that opens the reviews tab."
+  },
+  "ratePromptLater": {
+    "message": "Nanti saja",
+    "description": "One-time post-export rate prompt: dismiss button."
+  },
+  "errNoTab": {
+    "message": "Tab aktif tidak ditemukan.",
+    "description": "Capture error: no active tab."
+  },
+  "errProtectedPage": {
+    "message": "Tidak dapat menangkap halaman yang dilindungi ini.",
+    "description": "Capture error: browser-protected page."
+  },
+  "errFileAccess": {
+    "message": "Untuk mengambil file lokal, aktifkan \"Izinkan akses ke URL file\" di detail ekstensi ini.",
+    "description": "Capture error: a file:// page while Chrome's \"Allow access to file URLs\" toggle is off. Quote Chrome's own label for that toggle in this locale."
+  },
+  "errBlankPage": {
+    "message": "Halaman ini tidak memiliki konten yang dapat digulir.",
+    "description": "Capture error: nothing scrollable to capture."
+  },
+  "errTooLarge": {
+    "message": "Halaman ini terlalu tinggi, bahkan jika dibagi menjadi 6 gambar ($PX$ px). Coba area terlihat atau area pilihan.",
+    "description": "Capture error: page taller than one canvas. $PX$ is the height in device pixels.",
+    "placeholders": {
+      "px": {
+        "content": "$1",
+        "example": "35000"
+      }
+    }
+  },
+  "errNoRegion": {
+    "message": "Area tersimpan tidak muat di layar ini — pilih dulu area baru.",
+    "description": "Capture error: repeat-last-region with no region that fits."
+  },
+  "errClipboard": {
+    "message": "Tidak dapat menyalin screenshot ke papan klip.",
+    "description": "Quick-action error: clipboard write failed."
+  },
+  "errSave": {
+    "message": "Tidak dapat menyimpan screenshot ke disk.",
+    "description": "Quick-action error: disk save failed."
+  },
+  "errUnknown": {
+    "message": "Penangkapan gagal secara tak terduga.",
+    "description": "Capture error: unexpected failure."
+  }
+}
